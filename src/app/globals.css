@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Smooth scrolling globally */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom minimal scrollbar for Melora */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #0B0F16; 
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #1D2336; 
+    border-radius: 12px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #7B5CFF; 
+  }
+}
+
+@layer utilities {
+  /* You can add custom utility overrides here if needed later */
+  .glass-panel {
+    @apply bg-melora-surfaceLayer/80 backdrop-blur-[20px] border border-white/5;
+  }
+}
