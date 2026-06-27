@@ -3,6 +3,8 @@ import { Poppins } from "next/font/google";
 import "./globals.css";
 
 import MusicPlayer from "../components/player/MusicPlayer";
+import TopBar from "../components/layout/TopBar"; // <-- IMPORT ADDED HERE
+
 // Configure Poppins per the Melora Typography guidelines
 const poppins = Poppins({
   subsets: ["latin"],
@@ -44,6 +46,10 @@ export default function RootLayout({
         {/* Background Parallax & Ambient Gradients will be managed
             via global CSS or a dedicated ambient background component */}
         <div className="relative min-h-screen w-full flex flex-col">
+          
+          {/* RENDER THE TOP NAVIGATION HERE */}
+          <TopBar />
+
           {children}
 
           {/* RENDER THE PLAYER HERE */}
