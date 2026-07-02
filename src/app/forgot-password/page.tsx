@@ -1,0 +1,84 @@
+"use client";
+
+import React, { useState } from "react";
+import Link from "next/link";
+import { Mail, ArrowLeft } from "lucide-react";
+import Button from "../../components/common/Button";
+
+export default function ForgotPasswordPage() {
+    const [email, setEmail] = useState("");
+    const [message, setMessage] = useState("");
+    const [error, setError] = useState("");
+
+    const handleResetPassword = (e: React.FormEvent) => {
+        e.preventDefault();
+        setError("");
+        setMessage("");
+
+        if (!email) {
+            setError("لطفاً ایمیل خود را وارد کنید.");
+            return;
+        }
+
+        const users = JSON.parse(localStorage.getItem('sptfy_users') || '[]');
+        const userExists = users.find((u: any) => u.email === email);
+
+        if (!userExists) {
+            setError("کاربری با این ایمیل یافت نشد.");
+            return;
+        }
+
+        // شبیه‌سازی ارسال ایمیل بازیابی
+        setMessage("لینک بازیابی رمز عبور به ایمیل شما ارسال شد.");
+    };
+
+    return (
+        <main className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden">
+            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-melora-pink/20 rounded-full blur-[120px] pointer-events-none -z-10" />
+
+            <div className="w-full max-w-md bg-melora-surfaceLayer/60 backdrop-blur-[20px] border border-white/5 p-8 md:p-10 rounded-card shadow-soft relative z-10">
+
+                <div className="text-center mb-8">
+                    <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Reset Password</h1>
+                    <p className="text-melora-textSecondary">
+                        ایمیل خود را وارد کنید تا لینک بازیابی را ارسال کنیم.
+                    </p>
+                </div>
+
+                <form className="space-y-4" onSubmit={handleResetPassword}>
+
+                    <div className="space-y-1">
+                        <label className="text-sm font-medium text-melora-textSecondary ml-1">Email</label>
+                        <div className="relative">
+                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-melora-textMuted" />
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="you@example.com"
+                                className="w-full bg-melora-bgPrimary/50 border border-white/10 rounded-btn py-3 pl-12 pr-4 text-white placeholder:text-melora-textMuted focus:outline-none focus:border-melora-purple focus:ring-1 focus:ring-melora-purple transition-all duration-base"
+                            />
+                        </div>
+                    </div>
+
+                    {error && <p className="text-red-500 text-sm text-center pt-2">{error}</p>}
+                    {message && <p className="text-green-400 text-sm text-center pt-2">{message}</p>}
+
+                    <Button variant="primary" className="w-full mt-6" type="submit">
+                        Send Reset Link
+                    </Button>
+                </form>
+
+                <div className="mt-8 text-center">
+                    <Link
+                        href="/login"
+                        className="inline-flex items-center text-sm text-melora-textSecondary hover:text-white transition-colors duration-base"
+                    >
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        بازگشت به صفحه ورود
+                    </Link>
+                </div>
+            </div>
+        </main>
+    );
+}

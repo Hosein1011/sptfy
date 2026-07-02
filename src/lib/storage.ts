@@ -1,4 +1,3 @@
-
 import { User, Playlist, AuditObj, Song } from '../types';
 
 const DB_KEYS = {
@@ -44,10 +43,10 @@ export const storage = {
   createPlaylist: (id: string, name: string, songs: string[], userId: string): Playlist => {
     const users = getDB<User>(DB_KEYS.USERS);
     const user = users.find(u => u.id === userId);
-    
+
     const playlists = getDB<Playlist>(DB_KEYS.PLAYLISTS);
     const userPlaylists = playlists.filter(p => p.ownerId === userId);
-    
+
     if (user?.tier === 'FREE' && userPlaylists.length >= 3) {
       throw new Error("Free tier limited to 3 playlists.");
     }
@@ -55,14 +54,14 @@ export const storage = {
     const newPlaylist: Playlist = { id, name, ownerId: userId, songIds: songs };
     playlists.push(newPlaylist);
     setDB(DB_KEYS.PLAYLISTS, playlists);
-    
+
     return newPlaylist;
   },
 
   getFinancialAudit: (month: string, artistId: string): AuditObj => {
-    const REVENUE_PER_STREAM = 0.005; 
-    const mockStreams = Math.floor(Math.random() * 100000); 
-    
+    const REVENUE_PER_STREAM = 0.005;
+    const mockStreams = Math.floor(Math.random() * 100000);
+
     return {
       artistId,
       month,
@@ -73,8 +72,8 @@ export const storage = {
 
   searchSongs: (query: string, searchBy: 'title' | 'artist' = 'title'): Song[] => {
     const songs = getDB<Song>(DB_KEYS.SONGS);
-    return songs.filter(song => 
-      searchBy === 'title' 
+    return songs.filter(song =>
+      searchBy === 'title'
         ? song.title.toLowerCase().includes(query.toLowerCase())
         : song.artistName.toLowerCase().includes(query.toLowerCase())
     );
@@ -87,16 +86,16 @@ export const storage = {
     });
   },
 
-    getNotifications: (userId: string): Notification[] => {
+  getNotifications: (userId: string): Notification[] => {
     const notifications = getDB<Notification>('sptfy_notifications');
-    return notifications.filter(n => n.userId === userId).sort((a, b) => 
+    return notifications.filter(n => n.userId === userId).sort((a, b) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   },
 
   markAllNotificationsAsRead: (userId: string): void => {
     const notifications = getDB<Notification>('sptfy_notifications');
-    const updated = notifications.map(n => 
+    const updated = notifications.map(n =>
       n.userId === userId ? { ...n, isRead: true } : n
     );
     setDB('sptfy_notifications', updated);
@@ -106,7 +105,21 @@ export const storage = {
     const notifications = getDB<Notification>('sptfy_notifications');
     const filtered = notifications.filter(n => n.id !== notificationId);
     setDB('sptfy_notifications', filtered);
+  },
+
+  getCurrentUser: (): User | null => {
+    return JSON.parse(typeof window !== 'undefined' ? localStorage.getItem('currentUser') || 'null' : 'null');
+  },
+
+  setCurrentUser: (user: User): void => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('currentUser', JSON.stringify(user));
+    }
+  },
+
+  logout: (): void => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('currentUser');
+    }
   }
 };
-
-

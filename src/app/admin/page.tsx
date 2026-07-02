@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Users, DollarSign, Mic2, CheckCircle2, XCircle, BarChart3 } from "lucide-react";
+import { Users, DollarSign, Mic2, CheckCircle2, XCircle, BarChart3, MessageSquare } from "lucide-react";
 import Button from "../../components/common/Button";
 
 export default function AdminDashboardPage() {
@@ -13,6 +13,13 @@ export default function AdminDashboardPage() {
     { id: 2, name: "Luna Echo", genre: "Dream Pop", date: "Yesterday" },
     { id: 3, name: "The Midnight Sons", genre: "Indie Rock", date: "Oct 12" },
   ];
+
+  // --- TICKET SYSTEM STATE (Added by Person 2) ---
+  const [tickets, setTickets] = useState([
+    { id: 101, user: "AlexD", subject: "مشکل در پرداخت اشتراک Gold", status: "Open", date: "امروز" },
+    { id: 102, user: "SarahM", subject: "تاخیر در تایید حساب هنرمند", status: "Open", date: "دیروز" },
+    { id: 103, user: "JohnDoe", subject: "خطا در ایجاد پلی‌لیست", status: "Resolved", date: "۱۲ مهر" },
+  ]);
 
   // --- STUBS FOR PERSON 2 ---
   const handleApproveArtist = (id: number, approved: boolean) => {
@@ -26,9 +33,17 @@ export default function AdminDashboardPage() {
     // storage.updateSubscriptionPrices(prices)...
   };
 
+  // --- TICKET HANDLER (Added by Person 2) ---
+  const handleResolveTicket = (id: number) => {
+    console.log(`Ticket ${id} resolved`);
+    setTickets(tickets.map(t => t.id === id ? { ...t, status: "Resolved" } : t));
+    // در اینجا باید متد مربوطه از storage.ts برای به‌روزرسانی تیکت فراخوانی شود
+    // storage.resolveTicket(id)...
+  };
+
   return (
     <main className="min-h-screen p-6 md:p-10 pb-32">
-      
+
       {/* Header */}
       <header className="mb-10">
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
@@ -78,11 +93,11 @@ export default function AdminDashboardPage() {
 
       {/* Main Grid: Approvals & Pricing */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
+
         {/* Left Column: Artist Approvals */}
         <section className="bg-melora-surfaceLayer/30 border border-white/5 rounded-panel p-6 md:p-8">
           <h2 className="text-xl font-bold text-white mb-6">Pending Artist Approvals</h2>
-          
+
           <div className="space-y-4">
             {mockPendingArtists.map((artist) => (
               <div key={artist.id} className="flex items-center justify-between p-4 rounded-xl bg-melora-bgPrimary/50 border border-white/5 hover:border-white/10 transition-colors duration-base">
@@ -96,16 +111,16 @@ export default function AdminDashboardPage() {
                     <p className="text-xs text-melora-textSecondary">{artist.genre} • Applied {artist.date}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
-                  <button 
+                  <button
                     onClick={() => handleApproveArtist(artist.id, false)}
                     className="p-2 text-melora-textMuted hover:text-melora-pink transition-colors duration-base"
                     title="Reject"
                   >
                     <XCircle className="w-6 h-6" />
                   </button>
-                  <button 
+                  <button
                     onClick={() => handleApproveArtist(artist.id, true)}
                     className="p-2 text-melora-textSecondary hover:text-melora-purple hover:shadow-[0_0_15px_rgba(123,92,255,0.4)] rounded-full transition-all duration-base"
                     title="Approve"
@@ -115,7 +130,7 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
             ))}
-            
+
             {mockPendingArtists.length === 0 && (
               <p className="text-center text-melora-textSecondary py-8">No pending artists.</p>
             )}
@@ -125,17 +140,17 @@ export default function AdminDashboardPage() {
         {/* Right Column: Pricing Management */}
         <section className="bg-melora-surfaceLayer/30 border border-white/5 rounded-panel p-6 md:p-8">
           <h2 className="text-xl font-bold text-white mb-6">Subscription Pricing</h2>
-          
+
           <form onSubmit={handlePriceChange} className="space-y-6">
-            
+
             <div className="space-y-2">
               <label className="text-sm font-medium text-melora-textSecondary flex justify-between">
                 <span>Basic Tier (Max 6 Playlists)</span>
                 <span className="text-white font-bold">Free</span>
               </label>
-              <input 
-                type="text" 
-                disabled 
+              <input
+                type="text"
+                disabled
                 value="$0.00"
                 className="w-full bg-melora-bgPrimary/30 border border-white/5 rounded-btn py-3 px-4 text-melora-textMuted cursor-not-allowed"
               />
@@ -145,11 +160,11 @@ export default function AdminDashboardPage() {
               <label className="text-sm font-medium text-melora-textSecondary">Silver Tier (Max 100 Playlists)</label>
               <div className="relative">
                 <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-melora-textMuted" />
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   step="0.01"
                   value={prices.silver}
-                  onChange={(e) => setPrices({...prices, silver: parseFloat(e.target.value)})}
+                  onChange={(e) => setPrices({ ...prices, silver: parseFloat(e.target.value) })}
                   className="w-full bg-melora-bgPrimary/50 border border-white/10 rounded-btn py-3 pl-10 pr-4 text-white focus:outline-none focus:border-melora-purple focus:ring-1 focus:ring-melora-purple transition-all duration-base"
                 />
               </div>
@@ -162,11 +177,11 @@ export default function AdminDashboardPage() {
               </label>
               <div className="relative">
                 <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-melora-textMuted" />
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   step="0.01"
                   value={prices.gold}
-                  onChange={(e) => setPrices({...prices, gold: parseFloat(e.target.value)})}
+                  onChange={(e) => setPrices({ ...prices, gold: parseFloat(e.target.value) })}
                   className="w-full bg-melora-bgPrimary/50 border border-white/10 rounded-btn py-3 pl-10 pr-4 text-white focus:outline-none focus:border-melora-orange focus:ring-1 focus:ring-melora-orange transition-all duration-base"
                 />
               </div>
@@ -179,6 +194,50 @@ export default function AdminDashboardPage() {
         </section>
 
       </div>
+
+      {/* Ticket System Section (Added by Person 2) */}
+      <section className="mt-8 bg-melora-surfaceLayer/30 border border-white/5 rounded-panel p-6 md:p-8">
+        <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+          <MessageSquare className="w-6 h-6 text-melora-pink" />
+          Support Tickets
+        </h2>
+
+        <div className="space-y-4">
+          {tickets.map((ticket) => (
+            <div key={ticket.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl bg-melora-bgPrimary/50 border border-white/5 hover:border-white/10 transition-colors duration-base gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-melora-surfaceLayer flex items-center justify-center text-melora-pink font-bold">
+                  {ticket.user.charAt(0)}
+                </div>
+                <div>
+                  <h4 className="text-white font-semibold">{ticket.subject}</h4>
+                  <p className="text-xs text-melora-textSecondary">ثبت شده توسط {ticket.user} • {ticket.date}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <span className={`text-xs px-3 py-1 rounded-full font-medium ${ticket.status === 'Resolved' ? 'bg-green-500/10 text-green-400' : 'bg-melora-orange/10 text-melora-orange'}`}>
+                  {ticket.status === 'Resolved' ? 'حل شده' : 'باز'}
+                </span>
+                {ticket.status === 'Open' && (
+                  <button
+                    onClick={() => handleResolveTicket(ticket.id)}
+                    className="text-sm text-melora-textSecondary hover:text-green-400 transition-colors duration-base flex items-center gap-1"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    بستن تیکت
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {tickets.length === 0 && (
+            <p className="text-center text-melora-textSecondary py-8">تیکت پشتیبانی باز وجود ندارد.</p>
+          )}
+        </div>
+      </section>
+
     </main>
   );
 }
