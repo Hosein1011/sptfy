@@ -4,7 +4,6 @@ import RegisterPage from "../src/app/(auth)/register/page";
 import LoginPage from "../src/app/(auth)/login/page";
 import { useRouter } from "next/navigation";
 
-// شبیه‌سازی روتر Next.js
 jest.mock("next/navigation", () => ({
     useRouter: jest.fn(),
 }));
@@ -14,89 +13,95 @@ describe("Authentication Flow Tests", () => {
 
     beforeEach(() => {
         (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
-        window.localStorage.clear();
+        localStorage.clear();
         jest.clearAllMocks();
     });
 
+    const registerButtonName = /create account/i;
+    const loginButtonName = /log in/i;
+
     describe("Register Component", () => {
-        it("باید فرم ثبت‌نام را به درستی رندر کند", () => {
+        it("فرم ثبت‌نام را درست رندر می‌کند", () => {
             render(<RegisterPage />);
-            expect(screen.getByPlaceholderText(/email|ایمیل/i)).toBeInTheDocument();
-            expect(screen.getByPlaceholderText(/password|رمز عبور/i)).toBeInTheDocument();
-            expect(screen.getByRole("button", { name: /register|ثبت‌نام/i })).toBeInTheDocument();
+
+            expect(screen.getByPlaceholderText("John Doe")).toBeInTheDocument();
+            expect(screen.getByPlaceholderText("you@example.com")).toBeInTheDocument();
+            expect(screen.getByPlaceholderText("••••••••")).toBeInTheDocument();
+
+            expect(screen.getByRole("button", { name: registerButtonName })).toBeInTheDocument();
         });
 
-        it("باید از ثبت‌نام با ایمیل تکراری جلوگیری کرده و خطا نمایش دهد", async () => {
-            const existingUsers = [{ email: "test@example.com", password: "password123" }];
-            window.localStorage.setItem("users", JSON.stringify(existingUsers));
+        it("در صورت ایمیل تکراری، پیام خطا نمایش می‌دهد", async () => {
+            const existing = [
+                { id: "u1", name: "AAA", email: "test@example.com", password: "1234", role: "USER" }
+            ];
+            localStorage.setItem("sptfy_users", JSON.stringify(existing));
 
             render(<RegisterPage />);
-            const emailInput = screen.getByPlaceholderText(/email|ایمیل/i);
-            const passwordInput = screen.getByPlaceholderText(/password|رمز عبور/i);
-            const submitButton = screen.getByRole("button", { name: /register|ثبت‌نام/i });
 
-            await userEvent.type(emailInput, "test@example.com");
-            await userEvent.type(passwordInput, "newpassword123");
-            fireEvent.click(submitButton);
+            await userEvent.type(screen.getByPlaceholderText("John Doe"), "User");
+            await userEvent.type(screen.getByPlaceholderText("you@example.com"), "test@example.com");
+            await userEvent.type(screen.getByPlaceholderText("••••••••"), "password");
+
+            fireEvent.click(screen.getByRole("button", { name: registerButtonName }));
 
             await waitFor(() => {
-                expect(screen.getByText(/already exists|قبلا ثبت شده/i)).toBeInTheDocument();
+                expect(screen.getByText("این ایمیل قبلاً ثبت شده است.")).toBeInTheDocument();
             });
+
             expect(mockPush).not.toHaveBeenCalled();
         });
 
-        it("باید کاربر جدید را در localStorage ذخیره کرده و هدایت کند", async () => {
+        it("کاربر جدید ذخیره می‌شود و هدایت انجام می‌شود", async () => {
             render(<RegisterPage />);
-            const emailInput = screen.getByPlaceholderText(/email|ایمیل/i);
-            const passwordInput = screen.getByPlaceholderText(/password|رمز عبور/i);
-            const submitButton = screen.getByRole("button", { name: /register|ثبت‌نام/i });
 
-            await userEvent.type(emailInput, "newuser@example.com");
-            await userEvent.type(passwordInput, "securepassword");
-            fireEvent.click(submitButton);
+            await userEvent.type(screen.getByPlaceholderText("John Doe"), "New User");
+            await userEvent.type(screen.getByPlaceholderText("you@example.com"), "new@example.com");
+            await userEvent.type(screen.getByPlaceholderText("••••••••"), "password");
+
+            fireEvent.click(screen.getByRole("button", { name: registerButtonName }));
 
             await waitFor(() => {
                 expect(mockPush).toHaveBeenCalledWith("/");
             });
 
-            const storedUsers = JSON.parse(window.localStorage.getItem("users") || "[]");
-            expect(storedUsers).toHaveLength(1);
-            expect(storedUsers[0].email).toBe("newuser@example.com");
+            const users = JSON.parse(localStorage.getItem("sptfy_users") || "[]");
+            expect(users.length).toBe(1);
+            expect(users[0].email).toBe("new@example.com");
         });
     });
 
     describe("Login Component", () => {
-        it("باید با اطلاعات معتبر لاگین کرده و کاربر را هدایت کند", async () => {
-            const existingUsers = [{ email: "test@example.com", password: "password123" }];
-            window.localStorage.setItem("users", JSON.stringify(existingUsers));
+        it("با اطلاعات صحیح لاگین می‌کند و هدایت درست انجام می‌شود", async () => {
+            const existing = [
+                { id: "u1", name: "AAA", email: "test@example.com", password: "1234", role: "USER" }
+            ];
+            localStorage.setItem("sptfy_users", JSON.stringify(existing));
 
             render(<LoginPage />);
-            const emailInput = screen.getByPlaceholderText(/email|ایمیل/i);
-            const passwordInput = screen.getByPlaceholderText(/password|رمز عبور/i);
-            const submitButton = screen.getByRole("button", { name: /login|ورود/i });
 
-            await userEvent.type(emailInput, "test@example.com");
-            await userEvent.type(passwordInput, "password123");
-            fireEvent.click(submitButton);
+            await userEvent.type(screen.getByPlaceholderText("you@example.com"), "test@example.com");
+            await userEvent.type(screen.getByPlaceholderText("••••••••"), "1234");
+
+            fireEvent.click(screen.getByRole("button", { name: loginButtonName }));
 
             await waitFor(() => {
                 expect(mockPush).toHaveBeenCalled();
             });
         });
 
-        it("باید در صورت اشتباه بودن اطلاعات، پیام خطا نمایش دهد", async () => {
+        it("در صورت اطلاعات اشتباه پیام خطا نشان می‌دهد", async () => {
             render(<LoginPage />);
-            const emailInput = screen.getByPlaceholderText(/email|ایمیل/i);
-            const passwordInput = screen.getByPlaceholderText(/password|رمز عبور/i);
-            const submitButton = screen.getByRole("button", { name: /login|ورود/i });
 
-            await userEvent.type(emailInput, "wrong@example.com");
-            await userEvent.type(passwordInput, "wrongpassword");
-            fireEvent.click(submitButton);
+            await userEvent.type(screen.getByPlaceholderText("you@example.com"), "wrong@example.com");
+            await userEvent.type(screen.getByPlaceholderText("••••••••"), "wrong");
+
+            fireEvent.click(screen.getByRole("button", { name: loginButtonName }));
 
             await waitFor(() => {
-                expect(screen.getByText(/invalid|اشتباه/i)).toBeInTheDocument();
+                expect(screen.getByText("ایمیل یا رمز عبور نامعتبر است.")).toBeInTheDocument();
             });
+
             expect(mockPush).not.toHaveBeenCalled();
         });
     });

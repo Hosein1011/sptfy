@@ -7,7 +7,7 @@ import {
   Mic2, ListMusic, Maximize2
 } from "lucide-react";
 import PlayerSidePanel from "./PlayerSidePanel";
-import { usePlayerStore } from "../../store/playerStore"; // مسیر ایمپورت را بسته به ساختار پوشه‌ها اصلاح کنید
+import { usePlayerStore } from "../../store/playerStore";
 
 export default function MusicPlayer() {
   // --- UI STATE ---

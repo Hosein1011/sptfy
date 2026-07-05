@@ -2,13 +2,16 @@ import { render, screen } from "@testing-library/react";
 import TopBar from "../src/components/layout/TopBar";
 
 describe("TopBar", () => {
-    it("renders app branding", () => {
+    it("renders search input", () => {
         render(<TopBar />);
-        expect(screen.getByText(/sptfy/i)).toBeInTheDocument();
+        expect(
+            screen.getByPlaceholderText(/search for songs, artists, or albums/i)
+        ).toBeInTheDocument();
     });
 
-    it("renders a notification control", () => {
+    it("renders auth controls", () => {
         render(<TopBar />);
-        expect(screen.getByRole("button")).toBeInTheDocument();
+        expect(screen.getByText(/toggle auth state/i)).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: /log in/i })).toBeInTheDocument();
     });
 });

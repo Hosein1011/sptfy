@@ -1,17 +1,18 @@
-import { saveToStorage, getFromStorage } from "../src/lib/storage";
+import { storage } from "../src/lib/storage";
 
 describe("storage", () => {
-    beforeEach(() => {
-        localStorage.clear();
+    beforeEach(() => localStorage.clear());
+
+    it("sets current user", () => {
+        storage.setCurrentUser({ id: "u1", email: "a@b.com", name: "Ali" } as any);
+        const user = storage.getCurrentUser();
+        expect(user).not.toBeNull();
+        expect(user?.id).toBe("u1");
     });
 
-    it("saves values correctly", () => {
-        saveToStorage("theme", "dark");
-        expect(localStorage.getItem("theme")).toBe(JSON.stringify("dark"));
-    });
-
-    it("reads values correctly", () => {
-        localStorage.setItem("theme", JSON.stringify("light"));
-        expect(getFromStorage("theme")).toBe("light");
+    it("logs out clears current user", () => {
+        storage.setCurrentUser({ id: "u1" } as any);
+        storage.logout();
+        expect(storage.getCurrentUser()).toBeNull();
     });
 });

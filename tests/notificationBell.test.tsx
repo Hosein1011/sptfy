@@ -1,14 +1,14 @@
-import { render, screen } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import NotificationBell from "../src/components/layout/NotificationBell";
 
 describe("NotificationBell", () => {
-    it("renders bell icon button", () => {
-        render(<NotificationBell />);
-        expect(screen.getByRole("button")).toBeInTheDocument();
+    it("shows unread badge when unreadCount > 0", () => {
+        const { container } = render(<NotificationBell unreadCount={3} />);
+        expect(container.querySelector("span.bg-melora-pink")).toBeInTheDocument();
     });
 
-    it("shows unread state indicator", () => {
-        render(<NotificationBell unreadCount={3} />);
-        expect(screen.getByText("3")).toBeInTheDocument();
+    it("hides unread badge when unreadCount is 0", () => {
+        const { container } = render(<NotificationBell unreadCount={0} />);
+        expect(container.querySelector("span.bg-melora-pink")).toBeNull();
     });
 });

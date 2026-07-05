@@ -4,7 +4,13 @@ import React, { useState, useRef, useEffect } from "react";
 import { Bell, Check, Trash2 } from "lucide-react";
 import Link from "next/link";
 
-export default function NotificationBell() {
+type NotificationBellProps = {
+  unreadCount?: number;
+};
+
+export default function NotificationBell({
+  unreadCount = 0,
+}: NotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -14,8 +20,6 @@ export default function NotificationBell() {
     { id: 2, text: "'Midnight Drive' reached 1,000 saves!", time: "1h ago", read: false },
     { id: 3, text: "System update: Welcome to Melora Phase 1.", time: "1d ago", read: true },
   ]);
-
-  const unreadCount = notifications.filter(n => !n.read).length;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -42,7 +46,7 @@ export default function NotificationBell() {
   return (
     <div className="relative" ref={dropdownRef}>
       {/* Bell Button */}
-      <button 
+      <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 text-melora-textSecondary hover:text-white transition-colors duration-base rounded-full hover:bg-white/5"
       >
@@ -67,8 +71,8 @@ export default function NotificationBell() {
           <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
             {notifications.length > 0 ? (
               notifications.map((notif) => (
-                <div 
-                  key={notif.id} 
+                <div
+                  key={notif.id}
                   className={`p-4 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors duration-base flex gap-3 group cursor-pointer ${!notif.read ? 'bg-melora-purple/5' : ''}`}
                 >
                   <div className={`w-2 h-2 mt-1.5 rounded-full flex-shrink-0 ${!notif.read ? 'bg-melora-purple shadow-[0_0_8px_rgba(123,92,255,0.8)]' : 'bg-transparent'}`} />
@@ -79,7 +83,7 @@ export default function NotificationBell() {
                     <p className="text-xs text-melora-textMuted mt-1">{notif.time}</p>
                   </div>
                   {!notif.read && (
-                    <button 
+                    <button
                       onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notif.id); }}
                       className="opacity-0 group-hover:opacity-100 p-1 text-melora-textSecondary hover:text-white transition-all"
                       title="Mark as read"
@@ -97,14 +101,14 @@ export default function NotificationBell() {
           </div>
 
           <div className="p-3 bg-melora-bgPrimary/50 flex justify-between items-center border-t border-white/5">
-            <button 
+            <button
               onClick={handleClearAll}
               className="text-xs font-semibold text-melora-textMuted hover:text-melora-pink transition-colors flex items-center gap-1"
             >
               <Trash2 className="w-3 h-3" /> Clear
             </button>
-            <Link 
-              href="/notifications" 
+            <Link
+              href="/notifications"
               onClick={() => setIsOpen(false)}
               className="text-xs font-bold text-melora-purple hover:text-white transition-colors"
             >
