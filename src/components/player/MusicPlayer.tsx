@@ -86,8 +86,10 @@ export default function MusicPlayer() {
           audio.pause();
         }
       } catch (error) {
-        console.error("Audio playback error:", error);
-        setIsPlaying(false);
+        if (error.name !== "AbortError") {
+          console.error("Audio playback error:", error);
+          setIsPlaying(false);
+        }
       }
     };
 
