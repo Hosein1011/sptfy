@@ -1,63 +1,121 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  Play, Pause, SkipBack, SkipForward,
-  Shuffle, Repeat, Volume2, Heart,
-  Mic2, ListMusic, Maximize2
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  Shuffle,
+  Repeat,
+  Volume2,
+  Heart,
+  Mic2,
+  ListMusic,
+  Maximize2,
 } from "lucide-react";
 import PlayerSidePanel from "./PlayerSidePanel";
 import { usePlayerStore } from "../../store/playerStore";
 
+function formatTime(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60)
+    .toString()
+    .padStart(2, "0");
+  return `${m}:${s}`;
+}
+
 export default function MusicPlayer() {
-  // --- UI STATE ---
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [panelTab, setPanelTab] = useState<"queue" | "lyrics">("queue");
 
-  const [progress, setProgress] = useState(35); // Percentage 0-100
-  const [volume, setVolume] = useState(80); // Percentage 0-100
-
-  // --- AUDIO STATE (تغییرات بر اساس playerStore) ---
   const {
-    currentSong: storeSong,
+    currentSong,
     isPlaying,
-    togglePlay,
+    currentTime,
+    duration,
+    volume,
     shuffleMode,
-    toggleShuffle,
     repeatMode,
-    cycleRepeat
+    queue,
+    playSong,
+    togglePlay,
+    nextSong,
+    previousSong,
+    setCurrentTime,
+    setDuration,
+    seekTo,
+    setVolume,
+    toggleShuffle,
+    cycleRepeat,
+    setIsPlaying,
   } = usePlayerStore();
 
-  // داده‌های فعلی ساختگی به عنوان Fallback
-  const fallbackSong = {
-    title: "Midnight City",
-    artist: "M83",
-    cover: "bg-gradient-01",
-    duration: "4:03",
-    currentTime: "1:25",
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.volume = volume / 100;
+  }, [volume]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (!currentSong?.src) {
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
+      setIsPlaying(false);
+      return;
+    }
+
+    if (audio.src !== currentSong.src) {
+      audio.src = currentSong.src;
+      audio.load();
+    }
+
+    const playAudio = async () => {
+      try {
+        if (isPlaying) {
+          await audio.play();
+        } else {
+          audio.pause();
+        }
+      } catch (error) {
+        console.error("Audio playback error:", error);
+        setIsPlaying(false);
+      }
+    };
+
+    playAudio();
+  }, [currentSong, isPlaying, setIsPlaying]);
+
+  const handlePlayPause = () => {
+    if (!currentSong && queue.length > 0) {
+      playSong(queue[0]);
+      return;
+    }
+    togglePlay();
   };
 
-  const currentSong = storeSong ? {
-    title: storeSong.title,
-    artist: storeSong.artistId,
-    cover: storeSong.coverUrl ? storeSong.coverUrl : "bg-gradient-01",
-    duration: storeSong.duration.toString(),
-    currentTime: "0:00"
-  } : fallbackSong;
-
-  // --- INTERNAL METHODS ---
-  const handlePlayPause = () => togglePlay();
-  const handleNext = () => console.log("Next song");
-  const handlePrevious = () => console.log("Previous song");
-  const handleShuffleToggle = () => toggleShuffle();
-  const handleRepeatToggle = () => cycleRepeat();
-
-  const handleProgressUpdate = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setProgress(Number(e.target.value));
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Number(e.target.value);
+    seekTo(value);
+    if (audioRef.current) {
+      audioRef.current.currentTime = value;
+    }
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setVolume(Number(e.target.value));
+    const value = Number(e.target.value);
+    setVolume(value);
+    if (audioRef.current) {
+      audioRef.current.volume = value / 100;
+    }
   };
 
   const openSidePanel = (tab: "queue" | "lyrics") => {
@@ -65,9 +123,8 @@ export default function MusicPlayer() {
     setIsPanelOpen(true);
   };
 
-  useEffect(() => {
-    // Logic to sync isPlaying and currentSong with actual <audio> tag
-  }, [isPlaying]);
+  const progress =
+    duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
 
   return (
     <>
@@ -77,27 +134,46 @@ export default function MusicPlayer() {
         defaultTab={panelTab}
       />
 
-      <div className="fixed bottom-0 left-0 w-full h-[90px] md:h-[100px] bg-melora-surfaceLayer/80 backdrop-blur-[20px] border-t border-white/5 z-50 px-4 md:px-8 flex items-center justify-between transition-all duration-500">
+      <audio
+        ref={audioRef}
+        onTimeUpdate={() => {
+          if (!audioRef.current) return;
+          setCurrentTime(audioRef.current.currentTime);
+        }}
+        onLoadedMetadata={() => {
+          if (!audioRef.current) return;
+          setDuration(audioRef.current.duration || 0);
+        }}
+        onEnded={() => {
+          if (repeatMode === "ONE" && audioRef.current) {
+            audioRef.current.currentTime = 0;
+            audioRef.current.play().catch(console.error);
+            return;
+          }
+          nextSong();
+        }}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        preload="metadata"
+      />
 
+      <div className="fixed bottom-0 left-0 w-full h-[90px] md:h-[100px] bg-melora-surfaceLayer/80 backdrop-blur-[20px] border-t border-white/5 z-50 px-4 md:px-8 flex items-center justify-between transition-all duration-500">
         <div className="flex items-center gap-4 w-1/4 min-w-[150px]">
-          <div
-            style={{
-              backgroundImage: currentSong.cover.startsWith("bg-")
-                ? undefined
-                : `url('${currentSong.cover}')`
-            }}
-            className={`w-14 h-14 rounded-md shadow-soft flex-shrink-0 relative overflow-hidden group cursor-pointer bg-cover bg-center ${currentSong.cover.startsWith("bg-") ? currentSong.cover : ""
-              }`}
-          >
+          <div className="w-14 h-14 rounded-md bg-gradient-to-br from-purple-500 to-pink-500 shadow-soft flex-shrink-0 relative overflow-hidden group cursor-pointer">
             <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-base flex items-center justify-center">
               <Maximize2 className="w-5 h-5 text-white" />
             </div>
           </div>
 
           <div className="hidden sm:block truncate">
-            <h4 className="text-white font-semibold text-sm truncate hover:underline cursor-pointer">{currentSong.title}</h4>
-            <p className="text-melora-textSecondary text-xs truncate hover:underline cursor-pointer">{currentSong.artist}</p>
+            <h4 className="text-white font-semibold text-sm truncate hover:underline cursor-pointer">
+              {currentSong?.title ?? "Nothing playing"}
+            </h4>
+            <p className="text-melora-textSecondary text-xs truncate hover:underline cursor-pointer">
+              {currentSong?.artistName ?? "—"}
+            </p>
           </div>
+
           <button className="hidden md:block ml-2 text-melora-textMuted hover:text-melora-pink transition-colors duration-base">
             <Heart className="w-5 h-5" />
           </button>
@@ -106,72 +182,77 @@ export default function MusicPlayer() {
         <div className="flex flex-col items-center justify-center w-2/4 max-w-[600px]">
           <div className="flex items-center gap-6 mb-2">
             <button
-              onClick={handleShuffleToggle}
-              className={`hidden sm:block transition-colors duration-base ${shuffleMode ? 'text-melora-purple' : 'text-melora-textMuted hover:text-white'}`}
+              onClick={toggleShuffle}
+              className={`hidden sm:block transition-colors duration-base ${shuffleMode ? "text-melora-purple" : "text-melora-textMuted hover:text-white"
+                }`}
             >
               <Shuffle className="w-4 h-4" />
             </button>
 
-            <button onClick={handlePrevious} className="text-melora-textMuted hover:text-white transition-colors duration-base active:scale-95">
+            <button
+              onClick={previousSong}
+              className="text-melora-textMuted hover:text-white transition-colors duration-base"
+            >
               <SkipBack className="w-5 h-5 fill-current" />
             </button>
 
             <button
               onClick={handlePlayPause}
-              className="w-12 h-12 flex items-center justify-center rounded-full bg-gradient-01 shadow-glow text-white hover:scale-105 active:scale-95 transition-all duration-base"
+              className="w-11 h-11 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition-transform duration-base shadow-lg"
             >
-              {isPlaying ? <Pause className="w-5 h-5 fill-white" /> : <Play className="w-5 h-5 fill-white ml-1" />}
+              {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
             </button>
 
-            <button onClick={handleNext} className="text-melora-textMuted hover:text-white transition-colors duration-base active:scale-95">
+            <button
+              onClick={nextSong}
+              className="text-melora-textMuted hover:text-white transition-colors duration-base"
+            >
               <SkipForward className="w-5 h-5 fill-current" />
             </button>
 
             <button
-              onClick={handleRepeatToggle}
-              className={`hidden sm:block transition-colors duration-base ${repeatMode !== 'OFF' ? 'text-melora-purple' : 'text-melora-textMuted hover:text-white'}`}
+              onClick={cycleRepeat}
+              className={`hidden sm:flex items-center gap-1 transition-colors duration-base ${repeatMode !== "OFF" ? "text-melora-purple" : "text-melora-textMuted hover:text-white"
+                }`}
             >
               <Repeat className="w-4 h-4" />
-              {repeatMode === 'ONE' && <span className="absolute text-[8px] font-bold mt-[-18px] ml-[6px] text-melora-purple">1</span>}
+              {repeatMode === "ONE" && <span className="text-[10px] font-bold">1</span>}
             </button>
           </div>
 
           <div className="w-full flex items-center gap-3 text-xs text-melora-textMuted font-medium">
-            <span className="w-10 text-right">{currentSong.currentTime}</span>
+            <span className="w-10 text-right">{formatTime(currentTime)}</span>
             <div className="relative flex-1 h-1.5 group flex items-center">
               <input
                 type="range"
                 min="0"
-                max="100"
-                value={progress}
-                onChange={handleProgressUpdate}
+                max={Math.max(duration, 1)}
+                value={currentTime}
+                onChange={handleSeek}
                 className="absolute w-full h-full opacity-0 cursor-pointer z-10"
               />
-              <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden flex items-center group-hover:h-1.5 transition-all duration-base">
-                <div
-                  className="h-full bg-melora-purple"
-                  style={{ width: `${progress}%` }}
-                />
+              <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <div className="h-full bg-melora-purple" style={{ width: `${progress}%` }} />
               </div>
               <div
-                className="absolute h-3 w-3 bg-white rounded-full shadow-[0_0_10px_rgba(123,92,255,0.8)] opacity-0 group-hover:opacity-100 transition-opacity duration-base pointer-events-none"
+                className="absolute h-3 w-3 rounded-full bg-white shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
                 style={{ left: `calc(${progress}% - 6px)` }}
               />
             </div>
-            <span className="w-10">{currentSong.duration}</span>
+            <span className="w-10">{formatTime(duration)}</span>
           </div>
         </div>
 
         <div className="flex items-center justify-end gap-4 w-1/4 min-w-[150px]">
           <button
             onClick={() => openSidePanel("lyrics")}
-            className={`hidden lg:block transition-colors duration-base ${panelTab === "lyrics" && isPanelOpen ? "text-melora-purple" : "text-melora-textMuted hover:text-white"}`}
+            className="text-melora-textMuted hover:text-white transition-colors duration-base"
           >
             <Mic2 className="w-4 h-4" />
           </button>
           <button
             onClick={() => openSidePanel("queue")}
-            className={`hidden lg:block transition-colors duration-base ${panelTab === "queue" && isPanelOpen ? "text-melora-purple" : "text-melora-textMuted hover:text-white"}`}
+            className="text-melora-textMuted hover:text-white transition-colors duration-base"
           >
             <ListMusic className="w-4 h-4" />
           </button>
@@ -186,15 +267,11 @@ export default function MusicPlayer() {
               onChange={handleVolumeChange}
               className="absolute w-full h-full opacity-0 cursor-pointer z-10"
             />
-            <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden flex items-center group-hover:h-1.5 transition-all duration-base">
-              <div
-                className="h-full bg-white transition-all"
-                style={{ width: `${volume}%` }}
-              />
+            <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+              <div className="h-full bg-white transition-all" style={{ width: `${volume}%` }} />
             </div>
           </div>
         </div>
-
       </div>
     </>
   );

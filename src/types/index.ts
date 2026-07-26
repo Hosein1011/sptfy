@@ -1,12 +1,10 @@
-export type Role = 'USER' | 'ARTIST' | 'SUPPORTER' | 'ADMIN';
-
-export type SubscriptionTier = 'FREE' | 'STANDARD' | 'GOLD';
+export type Role = "USER" | "ARTIST" | "SUPPORTER" | "ADMIN";
+export type SubscriptionTier = "FREE" | "STANDARD" | "GOLD";
 
 export interface User {
   id: string;
   email: string;
   password?: string;
-  login: string;
   name: string;
   role: Role;
   tier: SubscriptionTier;
@@ -21,11 +19,11 @@ export interface Song {
   artistName: string;
   albumId?: string;
   duration: number;
+  src: string;
   listeners: number;
   releaseDate: string;
   isGoldOnly: boolean;
   lyrics?: string;
-  coverUrl?: string;
 }
 
 export interface Playlist {
