@@ -19,6 +19,14 @@ export default function MainPage() {
       listeners: 1200000,
       releaseDate: "2011-08-15",
       isGoldOnly: false,
+      lyrics: `Waiting in a car
+Waiting for a ride in the dark
+The night city grows
+Look at the horizon glow
+Waiting in a car
+Waiting for a ride in the dark
+Sitting in a car
+Waiting for a ride in the dark`,
     },
     {
       id: "2",
@@ -30,6 +38,14 @@ export default function MainPage() {
       listeners: 2100000,
       releaseDate: "2016-11-25",
       isGoldOnly: false,
+      lyrics: `I'm tryna put you in the worst mood, ah
+P1 cleaner than your church shoes, ah
+Milli point two just to hurt you, ah
+All red Lamb' just to tease you, ah
+None of these toys on lease too, ah
+Made your whole year in a week too, ah
+Main bitch out your league too, ah
+Side bitch out of your league too, ah`,
     },
     {
       id: "3",
@@ -41,6 +57,14 @@ export default function MainPage() {
       listeners: 900000,
       releaseDate: "2010-03-15",
       isGoldOnly: false,
+      lyrics: `I'm giving you a night call to tell you how I feel
+I want to drive you through the night, down the hills
+I'm gonna tell you something you don't want to hear
+I'm gonna show you where it's dark, but have no fear
+There's something inside you
+It's hard to explain
+They're talking about you, boy
+But you're still the same`,
     },
     {
       id: "4",
@@ -52,6 +76,15 @@ export default function MainPage() {
       listeners: 3200000,
       releaseDate: "2019-11-29",
       isGoldOnly: false,
+      lyrics: `I've been tryna call
+I've been on my own for long enough
+Maybe you can show me how to love, maybe
+I'm going through withdrawals
+You don't even have to do too much
+You can turn me on with just a touch, baby
+I look around and Sin City's cold and empty
+No one's around to judge me
+I can't see clearly when you're gone`,
     },
   ];
 
@@ -135,9 +168,7 @@ export default function MainPage() {
                   {index + 1}
                 </span>
 
-                <div
-                  className="w-12 h-12 rounded-md bg-gradient-to-br from-purple-500 to-pink-500 shadow-soft relative flex items-center justify-center"
-                >
+                <div className="w-12 h-12 rounded-md bg-gradient-to-br from-purple-500 to-pink-500 shadow-soft relative flex items-center justify-center">
                   <Play className="w-4 h-4 text-white fill-white opacity-0 group-hover:opacity-100 transition-opacity duration-base absolute" />
                 </div>
 

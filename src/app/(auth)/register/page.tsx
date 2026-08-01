@@ -6,11 +6,14 @@ import { useRouter } from "next/navigation";
 import { Mail, Lock, User } from "lucide-react";
 import Button from "../../../components/common/Button";
 import { storage } from "../../../lib/storage";
+import PrivacyPolicyModal from "../../../components/auth/PrivacyPolicyModal";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [accepted, setAccepted] = useState(false);
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
 
@@ -23,6 +26,11 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!accepted) {
+      setError("لطفاً سیاست حفظ حریم خصوصی را بپذیرید.");
+      return;
+    }
+
     // بررسی تکراری نبودن ایمیل
     const users = JSON.parse(localStorage.getItem('sptfy_users') || '[]');
     if (users.find((u: any) => u.email === email)) {
@@ -30,7 +38,7 @@ export default function RegisterPage() {
       return;
     }
 
-    // ایجاد شیء کاربر جدید با نقش پیش‌فرض USER
+    // ایجاد شیء کاربر جدید
     const newUser = {
       id: `u${Date.now()}`,
       name,
@@ -41,7 +49,7 @@ export default function RegisterPage() {
       favorites: []
     };
 
-    // ذخیره کاربر و تخصیص مستقیم به عنوان کاربر فعلی (لاگین خودکار پس از ثبت‌نام)
+    // ذخیره کاربر و تخصیص مستقیم به عنوان کاربر فعلی
     storage.saveUser(newUser);
     storage.setCurrentUser(newUser);
 
@@ -51,10 +59,8 @@ export default function RegisterPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Cinematic Ambient Light Behind the Form */}
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-melora-pink/20 rounded-full blur-[120px] pointer-events-none -z-10" />
 
-      {/* Glassmorphism Card */}
       <div className="w-full max-w-md bg-melora-surfaceLayer/60 backdrop-blur-[20px] border border-white/5 p-8 md:p-10 rounded-card shadow-soft relative z-10">
 
         <div className="text-center mb-8">
@@ -62,9 +68,7 @@ export default function RegisterPage() {
           <p className="text-melora-textSecondary">Create an account to start listening.</p>
         </div>
 
-        {/* Form */}
         <form className="space-y-4" onSubmit={handleRegister}>
-
           <div className="space-y-1">
             <label className="text-sm font-medium text-melora-textSecondary ml-1">Name</label>
             <div className="relative">
@@ -107,6 +111,27 @@ export default function RegisterPage() {
             </div>
           </div>
 
+          {/* Privacy Policy Checkbox */}
+          <div className="flex items-center gap-3 pt-2">
+            <input
+              type="checkbox"
+              id="privacy"
+              className="accent-melora-purple w-4 h-4 cursor-pointer"
+              checked={accepted}
+              onChange={(e) => setAccepted(e.target.checked)}
+            />
+            <label htmlFor="privacy" className="text-sm text-melora-textSecondary cursor-pointer">
+              پذیرش {" "}
+              <button
+                type="button"
+                onClick={() => setIsPrivacyOpen(true)}
+                className="text-melora-pink underline hover:text-white transition-colors"
+              >
+                سیاست حفظ حریم خصوصی
+              </button>
+            </label>
+          </div>
+
           {error && <p className="text-red-500 text-sm text-center pt-2">{error}</p>}
 
           <Button variant="primary" className="w-full mt-6" type="submit">
@@ -121,6 +146,11 @@ export default function RegisterPage() {
           </Link>
         </p>
       </div>
+
+      <PrivacyPolicyModal
+        isOpen={isPrivacyOpen}
+        onClose={() => setIsPrivacyOpen(false)}
+      />
     </main>
   );
 }

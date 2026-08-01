@@ -40,7 +40,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set((state) => {
       if (!state.user) return state;
       const updatedUser = { ...state.user, tier: planType };
-      storage.saveUser(updatedUser); 
+      storage.saveUser(updatedUser);
       return { user: updatedUser };
     });
   },
