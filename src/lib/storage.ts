@@ -24,7 +24,12 @@ const setDB = <T>(key: string, data: T[]) => {
   }
 };
 
-const normalize = (value: string) => value.trim().toLowerCase();
+const normalize = (value: string | null | undefined) => (value || "").trim().toLowerCase();
+
+const normalizeUserRecord = (user: User): User => ({
+  ...user,
+  followingIds: Array.isArray(user.followingIds) ? user.followingIds : [],
+});
 
 const DEFAULT_USERS: User[] = [
   {
@@ -53,6 +58,14 @@ const ensureDefaultUsers = (): User[] => {
   const users = getDB<User>(DB_KEYS.USERS);
   let changed = false;
 
+  // Migrate older phase-one localStorage users that did not have followingIds.
+  for (const user of users) {
+    if (!Array.isArray(user.followingIds)) {
+      user.followingIds = [];
+      changed = true;
+    }
+  }
+
   for (const defaultUser of DEFAULT_USERS) {
     const exists = users.some(
       (u) =>
@@ -79,12 +92,13 @@ export const storage = {
 
   saveUser: (user: User): void => {
     const users = ensureDefaultUsers();
-    const existingIndex = users.findIndex((u) => u.id === user.id);
+    const safeUser = normalizeUserRecord(user);
+    const existingIndex = users.findIndex((u) => u.id === safeUser.id);
 
     if (existingIndex > -1) {
-      users[existingIndex] = user;
+      users[existingIndex] = safeUser;
     } else {
-      users.push(user);
+      users.push(safeUser);
     }
 
     setDB(DB_KEYS.USERS, users);
@@ -96,13 +110,12 @@ export const storage = {
 
     if (!user) return;
 
-    const isFollowing = user.followingIds.includes(targetId);
+    const followingIds = Array.isArray(user.followingIds) ? user.followingIds : [];
+    const isFollowing = followingIds.includes(targetId);
 
-    if (isFollowing) {
-      user.followingIds = user.followingIds.filter((id) => id !== targetId);
-    } else {
-      user.followingIds.push(targetId);
-    }
+    user.followingIds = isFollowing
+      ? followingIds.filter((id) => id !== targetId)
+      : [...followingIds, targetId];
 
     storage.saveUser(user);
   },
@@ -157,8 +170,9 @@ export const storage = {
     const playlists = getDB<Playlist>(DB_KEYS.PLAYLISTS);
     const userPlaylists = playlists.filter((p) => p.ownerId === userId);
 
-    if (user?.tier === "FREE" && userPlaylists.length >= 3) {
-      throw new Error("Free tier limited to 3 playlists.");
+    const limit = user?.tier === "FREE" ? 6 : user?.tier === "STANDARD" ? 100 : null;
+    if (limit !== null && userPlaylists.length >= limit) {
+      throw new Error(`${user?.tier === "FREE" ? "Free" : "Silver"} tier limited to ${limit} playlists.`);
     }
 
     const newPlaylist: Playlist = {
@@ -202,7 +216,7 @@ export const storage = {
 
   sortSongs: (songs: Song[], sortBy: "listeners" | "releaseDate"): Song[] => {
     return [...songs].sort((a, b) => {
-      if (sortBy === "listeners") return b.listeners - a.listeners;
+      if (sortBy === "listeners") return (b.listeners ?? 0) - (a.listeners ?? 0);
       return (
         new Date(b.releaseDate).getTime() -
         new Date(a.releaseDate).getTime()
@@ -241,7 +255,13 @@ export const storage = {
     if (typeof window === "undefined") return null;
 
     try {
-      return JSON.parse(localStorage.getItem(DB_KEYS.CURRENT_USER) || "null");
+      const user = JSON.parse(localStorage.getItem(DB_KEYS.CURRENT_USER) || "null") as User | null;
+      if (!user) return null;
+      const safeUser = normalizeUserRecord(user);
+      if (!Array.isArray(user.followingIds)) {
+        localStorage.setItem(DB_KEYS.CURRENT_USER, JSON.stringify(safeUser));
+      }
+      return safeUser;
     } catch {
       return null;
     }
@@ -249,7 +269,7 @@ export const storage = {
 
   setCurrentUser: (user: User): void => {
     if (typeof window !== "undefined") {
-      localStorage.setItem(DB_KEYS.CURRENT_USER, JSON.stringify(user));
+      localStorage.setItem(DB_KEYS.CURRENT_USER, JSON.stringify(normalizeUserRecord(user)));
     }
   },
 

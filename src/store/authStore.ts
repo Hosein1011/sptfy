@@ -1,14 +1,17 @@
-
-import { create } from 'zustand';
-import { storage } from '../lib/storage';
-import { User, Role, SubscriptionTier } from '../types';
+import { create } from "zustand";
+import { authApi, tokenStorage } from "../lib/api";
+import { storage } from "../lib/storage";
+import { User, Role, SubscriptionTier } from "../types";
 
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
+  isHydrated: boolean;
+  hydrate: () => Promise<void>;
   login: (email: string, pass: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateSubscription: (planType: SubscriptionTier) => void;
+  setUser: (user: User) => void;
   hasPermission: (requiredRole: Role) => boolean;
 }
 
@@ -16,31 +19,71 @@ const roleHierarchy: Record<Role, number> = {
   USER: 1,
   ARTIST: 2,
   SUPPORTER: 3,
-  ADMIN: 4
+  ADMIN: 4,
 };
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
+  isHydrated: false,
 
-  login: async (email, pass) => {
-    const isValid = storage.login(email, pass);
-    if (isValid) {
-      const users = JSON.parse(localStorage.getItem('sptfy_users') || '[]');
-      const loggedInUser = users.find((u: User) => u.email === email);
-      set({ user: loggedInUser, isAuthenticated: true });
-      return true;
+  hydrate: async () => {
+    const localUser = storage.getCurrentUser();
+    if (!tokenStorage.get()) {
+      set({ user: localUser, isAuthenticated: Boolean(localUser), isHydrated: true });
+      return;
     }
-    return false;
+    try {
+      const user = await authApi.me();
+      storage.setCurrentUser(user);
+      set({ user, isAuthenticated: true, isHydrated: true });
+    } catch {
+      tokenStorage.clear();
+      storage.logout();
+      set({ user: null, isAuthenticated: false, isHydrated: true });
+    }
   },
 
-  logout: () => set({ user: null, isAuthenticated: false }),
+  login: async (email, pass) => {
+    try {
+      const result = await authApi.login(email, pass);
+      tokenStorage.set(result.token);
+      storage.setCurrentUser(result.user);
+      set({ user: result.user, isAuthenticated: true, isHydrated: true });
+      return true;
+    } catch {
+      // Keeps the original phase-one mock accounts usable when the API is offline.
+      const isValid = storage.login(email, pass);
+      if (!isValid) return false;
+      const user = storage.getCurrentUser();
+      set({ user, isAuthenticated: Boolean(user), isHydrated: true });
+      return Boolean(user);
+    }
+  },
+
+  logout: async () => {
+    try {
+      if (tokenStorage.get()) await authApi.logout();
+    } catch {
+      // Local cleanup must still happen if the backend is unavailable.
+    }
+    tokenStorage.clear();
+    storage.logout();
+    set({ user: null, isAuthenticated: false });
+  },
+
+  setUser: (user) => {
+    storage.saveUser(user);
+    storage.setCurrentUser(user);
+    set({ user, isAuthenticated: true, isHydrated: true });
+  },
 
   updateSubscription: (planType) => {
     set((state) => {
       if (!state.user) return state;
       const updatedUser = { ...state.user, tier: planType };
       storage.saveUser(updatedUser);
+      storage.setCurrentUser(updatedUser);
       return { user: updatedUser };
     });
   },
@@ -49,5 +92,5 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { user } = get();
     if (!user) return false;
     return roleHierarchy[user.role] >= roleHierarchy[requiredRole];
-  }
+  },
 }));

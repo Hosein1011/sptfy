@@ -4,13 +4,14 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { Mail, ArrowLeft } from "lucide-react";
 import Button from "../../components/common/Button";
+import { authApi } from "../../lib/api";
 
 export default function ForgotPasswordPage() {
     const [email, setEmail] = useState("");
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
 
-    const handleResetPassword = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleResetPassword = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError("");
         setMessage("");
@@ -22,18 +23,22 @@ export default function ForgotPasswordPage() {
             return;
         }
 
-        const users = JSON.parse(localStorage.getItem("sptfy_users") || "[]");
-        const userExists = users.find(
-            (u: any) => u?.email?.trim?.().toLowerCase() === normalizedEmail
-        );
-
-        if (!userExists) {
-            setError("کاربری با این ایمیل یافت نشد.");
-            return;
+        try {
+            const result = await authApi.requestPasswordReset(normalizedEmail);
+            setMessage(result.message || "لینک بازیابی رمز عبور ارسال شد.");
+            setEmail("");
+        } catch {
+            const users = JSON.parse(localStorage.getItem("sptfy_users") || "[]");
+            const userExists = users.find(
+                (u: any) => u?.email?.trim?.().toLowerCase() === normalizedEmail
+            );
+            if (!userExists) {
+                setError("کاربری با این ایمیل یافت نشد.");
+                return;
+            }
+            setMessage("لینک بازیابی رمز عبور به ایمیل شما ارسال شد.");
+            setEmail("");
         }
-
-        setMessage("لینک بازیابی رمز عبور به ایمیل شما ارسال شد.");
-        setEmail("");
     };
 
     return (

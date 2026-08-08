@@ -3,7 +3,8 @@ import { Poppins } from "next/font/google";
 import "./globals.css";
 
 import MusicPlayer from "../components/player/MusicPlayer";
-import TopBar from "../components/layout/TopBar"; // <-- IMPORT ADDED HERE
+import TopBar from "../components/layout/TopBar";
+import AuthBootstrap from "../components/auth/AuthBootstrap";
 
 // Configure Poppins per the Melora Typography guidelines
 const poppins = Poppins({
@@ -47,7 +48,7 @@ export default function RootLayout({
             via global CSS or a dedicated ambient background component */}
         <div className="relative min-h-screen w-full flex flex-col">
           
-          {/* RENDER THE TOP NAVIGATION HERE */}
+          <AuthBootstrap />
           <TopBar />
 
           {children}

@@ -21,12 +21,22 @@ class AlbumViewSet(viewsets.ModelViewSet):
     permission_classes = [IsVerifiedArtistOrReadOnly]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     search_fields = ['title', 'primary_artist__display_name', 'genre']
-    ordering_fields = ['release_date', 'title', 'created_at']
+    ordering_fields = ['release_date', 'title', 'created_at', '_listener_count']
 
     def get_queryset(self):
         user = self.request.user
-        qs = Album.objects.select_related('primary_artist').prefetch_related('collaborators', 'songs__primary_artist')
-        return visible_albums_for(user, qs)
+        qs = Album.objects.select_related('primary_artist').prefetch_related('collaborators', 'songs__primary_artist').annotate(
+            _listener_count=Count('songs__stream_events__user', distinct=True),
+        )
+        artist = self.request.query_params.get('artist')
+        if artist:
+            qs = qs.filter(Q(primary_artist_id=artist) | Q(collaborators__id=artist))
+        sort_by = self.request.query_params.get('sortBy')
+        if sort_by == 'listeners':
+            qs = qs.order_by('-_listener_count', '-release_date')
+        elif sort_by == 'releaseDate':
+            qs = qs.order_by('-release_date', '-created_at')
+        return visible_albums_for(user, qs).distinct()
 
 
 class SongViewSet(viewsets.ModelViewSet):

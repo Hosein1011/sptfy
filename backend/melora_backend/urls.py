@@ -9,6 +9,7 @@ from billing.views import PaymentTransactionViewSet, SubscriptionPlanViewSet, Su
 from community.views import NotificationViewSet, PlaylistViewSet
 from music.views import AlbumViewSet, SongViewSet
 from operations.views import ArtistVerificationViewSet, MonthlyAuditViewSet, TicketViewSet
+from common.views import home
 
 router = DefaultRouter()
 router.register('users', UserViewSet, basename='user')
@@ -27,6 +28,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('accounts.urls')),
     path('api/reports/', include('operations.report_urls')),
+    path('api/home/', home, name='home'),
     path('api/', include(router.urls)),
     path('api/health/', include('common.urls')),
 ]

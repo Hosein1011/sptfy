@@ -160,7 +160,16 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         target = self.get_object()
         if target == request.user:
             return Response({'detail': 'You cannot follow yourself.'}, status=status.HTTP_400_BAD_REQUEST)
+        already_following = request.user.following.filter(pk=target.pk).exists()
         request.user.following.add(target)
+        if not already_following:
+            from community.models import Notification
+            Notification.objects.create(
+                user=target,
+                type=Notification.Type.FOLLOW,
+                message=f'{request.user.display_name} started following you.',
+                link=f'/users/{request.user.pk}',
+            )
         return Response({'following': True, 'targetId': str(target.pk)})
 
     @action(detail=True, methods=['delete'])

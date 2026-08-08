@@ -59,6 +59,7 @@ class AuthenticationTests(BaseApiTest):
     def test_register_listener(self):
         response = self.client.post('/api/auth/register/', {
             'name': 'New User', 'email': 'new@example.com', 'password': 'StrongPass123',
+            'passwordConfirm': 'StrongPass123', 'birthDate': '2000-01-01', 'gender': 'UNSPECIFIED',
             'acceptedPrivacy': True,
         }, format='json')
         self.assertEqual(response.status_code, 201)
@@ -67,6 +68,7 @@ class AuthenticationTests(BaseApiTest):
     def test_register_rejects_duplicate_email(self):
         response = self.client.post('/api/auth/register/', {
             'name': 'Duplicate', 'email': self.user.email, 'password': 'StrongPass123',
+            'passwordConfirm': 'StrongPass123', 'birthDate': '2000-01-01', 'gender': 'UNSPECIFIED',
             'acceptedPrivacy': True,
         }, format='json')
         self.assertEqual(response.status_code, 400)
@@ -218,3 +220,54 @@ class OperationsAndBillingTests(BaseApiTest):
         response = self.client.get('/api/audits/')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['count'], 0)
+
+class RequestedFeatureIntegrationTests(BaseApiTest):
+    def test_home_feed_exposes_required_sections(self):
+        Playlist.objects.create(owner=self.user, name='Recent')
+        self.auth(self.user)
+        response = self.client.get('/api/home/')
+        self.assertEqual(response.status_code, 200)
+        for key in ['user', 'recentPlaylists', 'latestAlbums', 'popularSongs', 'earlyAccess']:
+            self.assertIn(key, response.data)
+
+    def test_artist_registration_creates_pending_verification(self):
+        response = self.client.post('/api/auth/register/artist/', {
+            'stageName': 'New Artist',
+            'email': 'newartist@example.com',
+            'password': 'StrongPass123',
+            'sampleWorkUrl': 'https://example.com/sample',
+            'bio': 'Demo bio',
+        }, format='json')
+        self.assertEqual(response.status_code, 201)
+        artist = User.objects.get(email='newartist@example.com')
+        self.assertEqual(artist.artist_status, 'PENDING')
+        self.assertTrue(ArtistVerificationRequest.objects.filter(artist=artist).exists())
+
+    def test_follow_creates_notification_for_target(self):
+        self.auth(self.user)
+        response = self.client.post(f'/api/users/{self.artist.id}/follow/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(Notification.objects.filter(user=self.artist, type='FOLLOW').exists())
+
+    def test_notification_can_be_deleted_individually(self):
+        notification = Notification.objects.create(user=self.user, message='Delete me')
+        self.auth(self.user)
+        response = self.client.delete(f'/api/notifications/{notification.id}/')
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Notification.objects.filter(pk=notification.id).exists())
+
+    def test_catalog_can_sort_by_listener_count(self):
+        second = Song.objects.create(
+            title='Popular Song', primary_artist=self.artist, source_url='/audio/popular.mp3',
+            duration_seconds=120, release_date=date(2020, 1, 2), is_published=True,
+        )
+        other_listener = User.objects.create_user(
+            username='listener2', email='listener2@example.com', password='StrongPass123',
+            display_name='Listener Two', role='USER', tier='FREE'
+        )
+        StreamEvent.objects.create(user=self.user, song=second)
+        StreamEvent.objects.create(user=other_listener, song=second)
+        self.auth(self.user)
+        response = self.client.get('/api/songs/?sortBy=listeners')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['results'][0]['id'], str(second.id))

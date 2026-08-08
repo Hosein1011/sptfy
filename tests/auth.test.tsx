@@ -72,6 +72,8 @@ describe("Authentication Flow Tests", () => {
             await userEvent.type(screen.getByPlaceholderText("John Doe"), "New User");
             await userEvent.type(screen.getByPlaceholderText("you@example.com"), "new@example.com");
             await userEvent.type(screen.getByPlaceholderText("••••••••"), "password");
+            await userEvent.type(screen.getByPlaceholderText("Confirm your password"), "password");
+            fireEvent.change(screen.getByLabelText("Birth Date"), { target: { value: "2000-01-01" } });
 
             await userEvent.click(screen.getByRole("checkbox"));
 

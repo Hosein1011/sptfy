@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { X, GripVertical, Play, Mic2, ListMusic, Music } from "lucide-react";
+import { ListMusic, Mic2, Music, Play, Trash2, X } from "lucide-react";
 import { usePlayerStore } from "../../store/playerStore";
 
 interface PlayerSidePanelProps {
@@ -10,175 +10,35 @@ interface PlayerSidePanelProps {
   defaultTab?: "queue" | "lyrics";
 }
 
-export default function PlayerSidePanel({
-  isOpen,
-  onClose,
-  defaultTab = "queue",
-}: PlayerSidePanelProps) {
+export default function PlayerSidePanel({ isOpen, onClose, defaultTab = "queue" }: PlayerSidePanelProps) {
   const [activeTab, setActiveTab] = useState<"queue" | "lyrics">(defaultTab);
   const [activeLyricIndex, setActiveLyricIndex] = useState(0);
-
-  const { currentSong, queue } = usePlayerStore();
-
-  const lyricsLines = currentSong?.lyrics
-    ? currentSong.lyrics.split("\n").filter((line) => line.trim() !== "")
+  const { currentSong, queue, playSong, removeFromQueue, clearQueue } = usePlayerStore();
+  const parsedLyrics = currentSong?.lyrics
+    ?.split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const lyricsLines = parsedLyrics?.length
+    ? parsedLyrics
     : ["Lyrics not available for this song."];
 
-  useEffect(() => {
-    setActiveLyricIndex(0);
-  }, [currentSong?.id]);
+  useEffect(() => { setActiveTab(defaultTab); }, [defaultTab, isOpen]);
+  useEffect(() => { setActiveLyricIndex(0); }, [currentSong?.id]);
 
-  return (
-    <>
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/20 z-40 md:hidden transition-opacity"
-          onClick={onClose}
-        />
-      )}
-
-      <div
-        className={`
-          fixed top-0 right-0 h-[calc(100vh-90px)] md:h-[calc(100vh-100px)] w-full sm:w-96
-          bg-melora-surfaceLayer/90 backdrop-blur-[30px] border-l border-white/10 z-50
-          flex flex-col shadow-[-10px_0_30px_rgba(0,0,0,0.3)]
-          transition-transform duration-500 ease-out
-          ${isOpen ? "translate-x-0" : "translate-x-full"}
-        `}
-      >
-        <div className="p-6 pb-4 border-b border-white/5 flex flex-col gap-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-white">Currently Playing</h2>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-full hover:bg-white/10 text-melora-textSecondary hover:text-white transition-colors duration-base"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="bg-melora-bgPrimary/50 p-1 rounded-lg border border-white/5 flex">
-            <button
-              onClick={() => setActiveTab("queue")}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-md transition-all duration-base ${activeTab === "queue"
-                ? "bg-white/10 text-white shadow-soft"
-                : "text-melora-textMuted hover:text-white"
-                }`}
-            >
-              <ListMusic className="w-4 h-4" /> Queue
-            </button>
-            <button
-              onClick={() => setActiveTab("lyrics")}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold rounded-md transition-all duration-base ${activeTab === "lyrics"
-                ? "bg-white/10 text-white shadow-soft"
-                : "text-melora-textMuted hover:text-white"
-                }`}
-            >
-              <Mic2 className="w-4 h-4" /> Lyrics
-            </button>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
-          {activeTab === "queue" && (
-            <div className="flex flex-col gap-6 animate-in fade-in duration-300">
-              <div>
-                <p className="text-xs uppercase tracking-wider font-bold text-melora-purple mb-3">
-                  Now Playing
-                </p>
-
-                {currentSong ? (
-                  <div className="flex items-center gap-4 p-3 rounded-xl bg-melora-purple/10 border border-melora-purple/20">
-                    <div className="w-12 h-12 rounded-md bg-gradient-to-br from-purple-500 to-blue-500 shadow-glow flex-shrink-0 relative flex items-center justify-center">
-                      <Music className="w-5 h-5 text-white/50" />
-                    </div>
-                    <div>
-                      <h4 className="text-white font-bold">{currentSong.title}</h4>
-                      <p className="text-sm text-melora-textSecondary">
-                        {currentSong.artistName}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-sm text-melora-textSecondary">
-                    No song is currently playing.
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <p className="text-xs uppercase tracking-wider font-bold text-melora-textMuted mb-3">
-                  Next In Queue
-                </p>
-
-                <div className="flex flex-col gap-1">
-                  {queue.length > 0 ? (
-                    queue
-                      .filter((track) => track.id !== currentSong?.id)
-                      .map((track) => (
-                        <div
-                          key={track.id}
-                          className="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-colors duration-base group"
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-md bg-white/10 shadow-soft flex-shrink-0 relative flex items-center justify-center">
-                              <Play className="w-4 h-4 text-white fill-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-white font-semibold text-sm group-hover:text-melora-purple transition-colors">
-                                {track.title}
-                              </span>
-                              <span className="text-xs text-melora-textSecondary">
-                                {track.artistName}
-                              </span>
-                            </div>
-                          </div>
-
-                          <button className="text-melora-textMuted hover:text-white cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-all p-1">
-                            <GripVertical className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))
-                  ) : (
-                    <div className="text-sm text-melora-textSecondary p-3 rounded-xl bg-white/5 border border-white/10">
-                      Queue is empty.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "lyrics" && (
-            <div className="flex flex-col h-full animate-in fade-in duration-300 relative">
-              <div className="space-y-6 pb-20 mask-image-linear-y">
-                {lyricsLines.map((line, index) => {
-                  const isActive = index === activeLyricIndex;
-                  const isPast = index < activeLyricIndex;
-
-                  return (
-                    <p
-                      key={index}
-                      onClick={() => setActiveLyricIndex(index)}
-                      className={`
-                        text-xl font-bold transition-all duration-500 cursor-pointer origin-left
-                        ${isActive
-                          ? "text-white scale-105 shadow-white"
-                          : isPast
-                            ? "text-white/30 hover:text-white/50"
-                            : "text-white/50 hover:text-white/70"
-                        }
-                      `}
-                    >
-                      {line}
-                    </p>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
+  return <>
+    {isOpen && <div className="fixed inset-0 bg-black/40 z-[60]" onClick={onClose} />}
+    <aside className={`fixed top-0 right-0 h-[calc(100vh-90px)] md:h-[calc(100vh-100px)] w-full sm:w-96 bg-melora-surfaceLayer/95 backdrop-blur-[30px] border-l border-white/10 z-[70] flex flex-col shadow-[-10px_0_30px_rgba(0,0,0,0.3)] transition-transform duration-300 ${isOpen ? "translate-x-0" : "translate-x-full"}`}>
+      <div className="p-5 border-b border-white/5 space-y-4">
+        <div className="flex justify-between items-center"><h2 className="text-xl font-bold">Currently Playing</h2><button onClick={onClose} className="p-2 rounded-full hover:bg-white/10"><X className="w-5 h-5" /></button></div>
+        <div className="bg-black/20 p-1 rounded-lg flex"><button onClick={() => setActiveTab("queue")} className={`flex-1 py-2 rounded-md text-sm font-semibold flex items-center justify-center gap-2 ${activeTab === "queue" ? "bg-white/10" : "text-melora-textMuted"}`}><ListMusic className="w-4 h-4" /> Queue</button><button onClick={() => setActiveTab("lyrics")} className={`flex-1 py-2 rounded-md text-sm font-semibold flex items-center justify-center gap-2 ${activeTab === "lyrics" ? "bg-white/10" : "text-melora-textMuted"}`}><Mic2 className="w-4 h-4" /> Lyrics</button></div>
       </div>
-    </>
-  );
+
+      <div className="flex-1 overflow-y-auto p-5">
+        {activeTab === "queue" ? <div className="space-y-6">
+          <div><p className="text-xs uppercase tracking-wider font-bold text-melora-purple mb-3">Now Playing</p>{currentSong ? <div className="flex items-center gap-3 p-3 rounded-xl bg-melora-purple/10 border border-melora-purple/20"><div className="w-12 h-12 rounded-lg bg-gradient-01 overflow-hidden flex items-center justify-center">{currentSong.coverUrl ? <img src={currentSong.coverUrl} alt="" className="w-full h-full object-cover" /> : <Music className="w-5 h-5 text-white/50" />}</div><div className="min-w-0"><p className="font-bold truncate">{currentSong.title}</p><p className="text-sm text-melora-textSecondary truncate">{currentSong.artistName}</p></div></div> : <p className="text-sm text-melora-textMuted">No song is currently playing.</p>}</div>
+          <div><div className="flex justify-between items-center mb-3"><p className="text-xs uppercase tracking-wider font-bold text-melora-textMuted">Next In Queue</p>{queue.some((track) => track.id !== currentSong?.id) && <button onClick={clearQueue} className="text-xs text-melora-textMuted hover:text-red-300">Clear queue</button>}</div><div className="space-y-1">{queue.filter((track) => track.id !== currentSong?.id).map((track) => <div key={track.id} className="flex items-center justify-between gap-2 p-2 rounded-xl hover:bg-white/5 group"><button onClick={() => playSong(track)} className="flex items-center gap-3 min-w-0 flex-1 text-left"><div className="w-10 h-10 rounded-md bg-white/10 flex items-center justify-center shrink-0"><Play className="w-4 h-4" /></div><div className="min-w-0"><p className="text-sm font-semibold truncate">{track.title}</p><p className="text-xs text-melora-textMuted truncate">{track.artistName}</p></div></button><button onClick={() => removeFromQueue(track.id)} className="p-2 opacity-0 group-hover:opacity-100 hover:text-red-300"><Trash2 className="w-4 h-4" /></button></div>)}{!queue.filter((track) => track.id !== currentSong?.id).length && <p className="text-sm text-melora-textMuted p-3 rounded-xl bg-white/5">Queue is empty.</p>}</div></div>
+        </div> : <div className="space-y-5 pb-16">{lyricsLines.map((line, index) => <p key={`${line}-${index}`} onClick={() => setActiveLyricIndex(index)} className={`text-xl font-bold cursor-pointer transition-all ${index === activeLyricIndex ? "text-white scale-[1.02]" : index < activeLyricIndex ? "text-white/30" : "text-white/55"}`}>{line}</p>)}</div>}
+      </div>
+    </aside>
+  </>;
 }

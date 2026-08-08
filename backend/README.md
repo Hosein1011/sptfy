@@ -55,14 +55,15 @@ Django admin: `http://localhost:8000/admin`
 | Artist registration | `POST /api/auth/register/artist/` |
 | Login / logout | `POST /api/auth/login/`, `POST /api/auth/logout/` |
 | Current user/profile | `GET/PATCH /api/auth/me/` |
+| Home feed | `GET /api/home/` |
 | Preferences | `GET/PATCH /api/auth/preferences/` |
 | Users/follow | `GET /api/users/`, `POST /api/users/{id}/follow/` |
 | Songs | `/api/songs/` |
 | Register a stream | `POST /api/songs/{id}/stream/` |
-| Albums | `/api/albums/` |
+| Albums | `/api/albums/` (`search`, `artist`, `sortBy=listeners|releaseDate`) |
 | Playlists | `/api/playlists/` |
 | Add/remove playlist song | `POST /api/playlists/{id}/songs/`, `DELETE /api/playlists/{id}/songs/{songId}/` |
-| Notifications | `/api/notifications/` |
+| Notifications | `/api/notifications/` + mark-read/mark-all/delete/clear-all actions |
 | Tickets/chat | `/api/tickets/`, `POST /api/tickets/{id}/messages/` |
 | Artist verification | `/api/artist-verifications/` |
 | Subscription plans | `/api/subscription-plans/` |

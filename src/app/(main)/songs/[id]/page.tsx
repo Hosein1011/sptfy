@@ -1,128 +1,22 @@
 "use client";
 
-import React from "react";
-import { Play, Heart, MoreHorizontal } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { Heart, Play } from "lucide-react";
+import { songsApi } from "../../../../lib/api";
 import { usePlayerStore } from "../../../../store/playerStore";
 import { Song } from "../../../../types";
 
-export default function MainPage() {
+export default function SongDetailPage() {
+  const params = useParams<{ id: string }>();
   const playSong = usePlayerStore((state) => state.playSong);
-
-  const trendingSongs: Song[] = [
-    {
-      id: "1",
-      title: "Midnight City",
-      artistId: "m83",
-      artistName: "M83",
-      duration: 243,
-      src: "/audio/nightcall.mp3",
-      listeners: 1200000,
-      releaseDate: "2011-08-15",
-      isGoldOnly: false,
-    },
-    {
-      id: "2",
-      title: "Starboy",
-      artistId: "the-weeknd",
-      artistName: "The Weeknd",
-      duration: 230,
-      src: "/audio/nightcall.mp3",
-      listeners: 2100000,
-      releaseDate: "2016-11-25",
-      isGoldOnly: false,
-    },
-    {
-      id: "3",
-      title: "Nightcall",
-      artistId: "kavinsky",
-      artistName: "Kavinsky",
-      duration: 259,
-      src: "/audio/nightcall.mp3",
-      listeners: 900000,
-      releaseDate: "2010-03-15",
-      isGoldOnly: false,
-    },
-    {
-      id: "4",
-      title: "Blinding Lights",
-      artistId: "the-weeknd",
-      artistName: "The Weeknd",
-      duration: 200,
-      src: "/audio/nightcall.mp3",
-      listeners: 3200000,
-      releaseDate: "2019-11-29",
-      isGoldOnly: false,
-    },
-  ];
-
-  const madeForYou = [
-    { id: 1, title: "Late Night Drive", description: "Deep vibes and neon lights", gradient: "bg-gradient-01" },
-    { id: 2, title: "Focus Flow", description: "Atmospheric and calm", gradient: "bg-gradient-02" },
-    { id: 3, title: "Acoustic Sunrise", description: "Warm and acoustic", gradient: "bg-gradient-03" },
-  ];
-
-  return (
-    <main className="flex-1 w-full p-6 md:p-10 pb-32">
-      <header className="mb-10">
-        <h1 className="text-3xl md:text-5xl font-bold text-white">Welcome back</h1>
-        <p className="text-melora-textSecondary mt-2">Discover music and keep the vibe going.</p>
-      </header>
-
-      <section className="mb-10">
-        <h2 className="text-xl font-bold text-white mb-4">Made For You</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {madeForYou.map((playlist) => (
-            <div key={playlist.id} className="rounded-2xl p-5 bg-white/5 border border-white/5 hover:bg-white/8 transition-colors">
-              <div className={`w-full h-32 rounded-xl mb-4 ${playlist.gradient}`} />
-              <h3 className="text-white font-semibold">{playlist.title}</h3>
-              <p className="text-sm text-melora-textSecondary mt-1">{playlist.description}</p>
-              <button className="mt-4 w-11 h-11 rounded-full bg-white text-black flex items-center justify-center">
-                <Play className="w-5 h-5 fill-current ml-0.5" />
-              </button>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <h2 className="text-xl font-bold text-white mb-4">Trending Right Now</h2>
-        <div className="space-y-2">
-          {trendingSongs.map((song, index) => (
-            <div
-              key={song.id}
-              onClick={() => playSong(song)}
-              className="flex items-center justify-between rounded-xl px-4 py-3 bg-white/5 border border-white/5 hover:bg-white/10 transition-colors cursor-pointer"
-            >
-              <div className="flex items-center gap-4 min-w-0">
-                <span className="text-melora-textMuted w-5 text-right">{index + 1}</span>
-                <div className="w-11 h-11 rounded-md bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
-                  <Play className="w-4 h-4 text-white fill-current ml-0.5" />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="text-white font-medium truncate">{song.title}</h4>
-                  <p className="text-sm text-melora-textSecondary truncate">{song.artistName}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4 flex-shrink-0">
-                <span className="text-sm text-melora-textMuted">{Math.floor(song.duration / 60)}:{String(song.duration % 60).padStart(2, "0")}</span>
-                <button
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-melora-textMuted hover:text-white transition-colors"
-                >
-                  <Heart className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-melora-textMuted hover:text-white transition-colors"
-                >
-                  <MoreHorizontal className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-    </main>
-  );
+  const [song, setSong] = useState<Song | null>(null);
+  const [liked, setLiked] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => { songsApi.get(params.id).then((data) => { setSong(data); setLiked(Boolean(data.isLiked)); }).catch((e) => setError(e instanceof Error ? e.message : "Song not found.")); }, [params.id]);
+  const toggleLike = async () => { if (!song) return; try { if (liked) await songsApi.unlike(song.id); else await songsApi.like(song.id); setLiked(!liked); } catch (e) { setError(e instanceof Error ? e.message : "Could not update like."); } };
+  if (error && !song) return <main className="flex-1 p-10 text-red-300">{error}</main>;
+  if (!song) return <main className="flex-1 p-10 text-melora-textMuted">Loading song...</main>;
+  return <main className="flex-1 p-6 md:p-10 pb-32 max-w-6xl mx-auto"><section className="rounded-3xl border border-white/5 bg-melora-surfaceLayer/30 p-7 md:p-10 flex flex-col md:flex-row gap-8 items-center"><div className="w-56 h-56 rounded-card bg-gradient-01 overflow-hidden flex items-center justify-center">{song.coverUrl ? <img src={song.coverUrl} alt="" className="w-full h-full object-cover" /> : <Play className="w-14 h-14 text-white/40" />}</div><div className="flex-1 text-center md:text-left"><p className="text-xs uppercase tracking-widest text-melora-textMuted">Song</p><h1 className="text-4xl md:text-6xl font-bold mt-2">{song.title}</h1><p className="mt-3 text-melora-textSecondary"><Link href={`/artists/${song.artistId}`} className="text-white font-semibold hover:underline">{song.artistName}</Link>{song.albumId && <> • <Link href={`/albums/${song.albumId}`} className="hover:text-white">{song.albumTitle}</Link></>}</p><p className="mt-2 text-sm text-melora-textMuted">Released {song.releaseDate}{song.genre ? ` • ${song.genre}` : ""}</p>{song.listeners !== null && <p className="mt-4 text-sm"><b>{song.listeners.toLocaleString()}</b> listeners {song.streams !== null && song.streams !== undefined ? `• ${song.streams.toLocaleString()} streams` : ""}</p>}<div className="mt-6 flex justify-center md:justify-start gap-3"><button onClick={() => playSong(song)} className="px-6 py-3 rounded-xl bg-gradient-01 font-semibold flex gap-2 items-center"><Play className="w-5 h-5 fill-white" /> Play</button><button onClick={toggleLike} className={`w-12 h-12 rounded-xl border border-white/10 flex items-center justify-center ${liked ? "text-melora-pink" : ""}`}><Heart className={`w-5 h-5 ${liked ? "fill-current" : ""}`} /></button></div></div></section>{error && <p className="mt-5 text-sm text-red-300">{error}</p>}{song.lyrics && <section className="mt-8 rounded-2xl border border-white/5 bg-melora-surfaceLayer/20 p-6"><h2 className="text-2xl font-bold mb-5">Lyrics</h2><p className="whitespace-pre-line text-melora-textSecondary leading-8">{song.lyrics}</p></section>}</main>;
 }

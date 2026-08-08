@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.db.models import Q
 from django.utils import timezone
 
@@ -6,7 +8,7 @@ from .models import Subscription
 
 
 def sync_user_subscription(user: User) -> User:
-    """Keep the cached user tier aligned with active, non-expired subscriptions."""
+    """Keep cached tier in sync and create subscription-expiry notifications."""
     if not getattr(user, 'is_authenticated', False) or user.role != User.Role.USER:
         return user
 
@@ -26,12 +28,25 @@ def sync_user_subscription(user: User) -> User:
     if previous_tier != expected_tier:
         User.objects.filter(pk=user.pk).update(tier=expected_tier)
         user.tier = expected_tier
+
+    from community.models import Notification
+
     if expired_count and expected_tier == User.Tier.FREE and previous_tier != User.Tier.FREE:
-        from community.models import Notification
-        Notification.objects.create(
+        Notification.objects.get_or_create(
             user=user,
             type=Notification.Type.SUBSCRIPTION,
             message='Your paid subscription has expired.',
+            link='/settings',
+        )
+
+    # Surface the required end-of-subscription warning before expiry. Authentication
+    # runs this sync on ordinary API use, and get_or_create prevents duplicates.
+    if active and active.ends_at and now < active.ends_at <= now + timedelta(days=3):
+        expiry_date = timezone.localtime(active.ends_at).date().isoformat()
+        Notification.objects.get_or_create(
+            user=user,
+            type=Notification.Type.SUBSCRIPTION,
+            message=f'Your {active.plan.name} subscription expires on {expiry_date}.',
             link='/settings',
         )
     return user

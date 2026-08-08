@@ -2,6 +2,7 @@ import re
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
 from .models import User, UserPreference
@@ -34,6 +35,9 @@ class UserSerializer(serializers.ModelSerializer):
     profileImage = serializers.SerializerMethodField()
     artistStatus = serializers.CharField(source='artist_status', read_only=True)
     preferences = UserPreferenceSerializer(read_only=True)
+    dailyStreams = serializers.SerializerMethodField()
+    artistListeners = serializers.SerializerMethodField()
+    artistStreams = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -41,6 +45,7 @@ class UserSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'name', 'role', 'tier', 'birth_date', 'gender',
             'profileImage', 'bio', 'followingIds', 'followerCount', 'followingCount',
             'isVerified', 'artistStatus', 'artist_rejection_reason', 'preferences',
+            'dailyStreams', 'artistListeners', 'artistStreams',
         ]
         read_only_fields = ['id', 'username', 'role', 'tier', 'artist_rejection_reason']
 
@@ -63,6 +68,36 @@ class UserSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         return request.build_absolute_uri(obj.profile_image.url) if request else obj.profile_image.url
 
+    def get_dailyStreams(self, obj):
+        request = self.context.get('request')
+        if not (request and request.user.is_authenticated):
+            return None
+        # The phase-one profile specification explicitly displays the user's
+        # daily streamed-song count on the profile, including profiles that can
+        # be followed by another authenticated user.
+        return obj.stream_events.filter(listened_at__date=timezone.localdate()).count()
+
+    def _can_view_artist_stats(self, obj):
+        request = self.context.get('request')
+        if not (request and request.user.is_authenticated) or obj.role != User.Role.ARTIST:
+            return False
+        return (
+            request.user.id == obj.id
+            or request.user.tier == User.Tier.GOLD
+            or request.user.role in {User.Role.SUPPORTER, User.Role.ADMIN}
+        )
+
+    def get_artistListeners(self, obj):
+        if not self._can_view_artist_stats(obj):
+            return None
+        return obj.songs.filter(is_published=True).values('stream_events__user_id').exclude(stream_events__user_id=None).distinct().count()
+
+    def get_artistStreams(self, obj):
+        if not self._can_view_artist_stats(obj):
+            return None
+        from music.models import StreamEvent
+        return StreamEvent.objects.filter(song__primary_artist=obj, song__is_published=True).count()
+
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='display_name', required=False)
@@ -82,9 +117,9 @@ class RegisterSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=120)
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True, min_length=8)
-    passwordConfirm = serializers.CharField(write_only=True, required=False)
-    birthDate = serializers.DateField(required=False, allow_null=True)
-    gender = serializers.ChoiceField(choices=User.Gender.choices, required=False)
+    passwordConfirm = serializers.CharField(write_only=True)
+    birthDate = serializers.DateField()
+    gender = serializers.ChoiceField(choices=User.Gender.choices)
     acceptedPrivacy = serializers.BooleanField()
 
     def validate_email(self, value):
@@ -97,7 +132,7 @@ class RegisterSerializer(serializers.Serializer):
         if not attrs.get('acceptedPrivacy'):
             raise serializers.ValidationError({'acceptedPrivacy': 'Privacy policy must be accepted.'})
         confirm = attrs.get('passwordConfirm')
-        if confirm is not None and confirm != attrs['password']:
+        if confirm != attrs['password']:
             raise serializers.ValidationError({'passwordConfirm': 'Passwords do not match.'})
         return attrs
 
@@ -131,6 +166,11 @@ class ArtistRegisterSerializer(serializers.Serializer):
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError('This email is already registered.')
         return value
+
+    def validate(self, attrs):
+        if not attrs.get('sampleWorkUrl') and not attrs.get('sampleWorkFile'):
+            raise serializers.ValidationError({'sampleWorkUrl': 'A sample-work URL or file is required.'})
+        return attrs
 
     @transaction.atomic
     def create(self, validated_data):
