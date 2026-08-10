@@ -206,10 +206,16 @@ export const songsApi = {
   get(id: string) {
     return apiRequest<Song>(`/songs/${id}/`);
   },
+  
   stream(id: string, secondsPlayed = 0) {
     return apiRequest<{ streamId: string; remaining: number | null }>(`/songs/${id}/stream/`, {
       method: "POST",
       body: JSON.stringify({ secondsPlayed }),
+    });
+  },
+  download(id: string) {
+    return apiRequest<{ songId: string; downloadUrl: string }>(`/songs/${id}/download/`, {
+      method: "GET",
     });
   },
   like(id: string) {
@@ -286,5 +292,57 @@ export const notificationsApi = {
   },
   clearAll() {
     return apiRequest<{ deleted: number }>("/notifications/clear_all/", { method: "DELETE" });
+  },
+};
+
+
+export type UserPreferences = {
+  highQuality?: boolean;
+  spatialAudio?: boolean;
+  offlineMode?: boolean;
+  privateSession?: boolean;
+  dataSaver?: boolean;
+};
+
+export const userApi = {
+  getPreferences() {
+    return apiRequest<UserPreferences>("/user/preferences/");
+  },
+  updatePreferences(payload: UserPreferences) {
+    return apiRequest<UserPreferences>("/user/preferences/", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
+};
+
+export const artistApi = {
+  // دریافت لیست آهنگ‌های آرتیست جاری
+  getMyCatalog() {
+    return apiRequest<PaginatedResponse<Song>>("/artist/songs/");
+  },
+  
+  // آپلود تراک جدید همراه با فایل صوتی
+  uploadSong(payload: {
+    title: string;
+    albumName?: string;
+    audioFile: File;
+  }) {
+    const form = new FormData();
+    form.append("title", payload.title);
+    if (payload.albumName) form.append("album", payload.albumName);
+    form.append("file", payload.audioFile);
+
+    return apiRequest<Song>("/songs/", {
+      method: "POST",
+      body: form,
+    });
+  },
+
+  // حذف تراک
+  deleteSong(id: string | number) {
+    return apiRequest<void>(`/songs/${id}/`, {
+      method: "DELETE",
+    });
   },
 };
