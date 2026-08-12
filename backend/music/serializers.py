@@ -39,11 +39,17 @@ class SongSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if not self.instance and not attrs.get('audio_file') and not attrs.get('source_url'):
             raise serializers.ValidationError('Either audio_file or source_url is required.')
+        
         album = attrs.get('album')
         request = self.context.get('request')
-        if album and request and request.user.role == User.Role.ARTIST and album.primary_artist_id != request.user.id:
-            raise serializers.ValidationError({'album': 'You can only add songs to your own albums.'})
-        return attrs
+        
+        if album and request and request.user.role == 'ARTIST':
+            # بررسی اینکه یوزر یا آرتیست اصلی باشد یا جزو همکاران آلبوم
+            is_primary = (album.primary_artist_id == request.user.id)
+            is_collaborator = album.collaborators.filter(id=request.user.id).exists()
+            
+            if not (is_primary or is_collaborator):
+                raise serializers.ValidationError({'album': 'You can only add songs to your own or collaborative albums.'})
 
     def get_src(self, obj):
         request = self.context.get('request')

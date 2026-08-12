@@ -12,7 +12,7 @@ from accounts.models import User
 from accounts.permissions import IsAdmin
 from .models import PaymentTransaction, Subscription, SubscriptionPlan
 from .serializers import PaymentTransactionSerializer, SubscriptionPlanSerializer, SubscriptionSerializer
-
+from .services import PaymentService
 
 class SubscriptionPlanViewSet(viewsets.ModelViewSet):
     queryset = SubscriptionPlan.objects.filter(is_active=True).order_by('monthly_price')
@@ -40,6 +40,7 @@ class SubscriptionViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, view
 class PaymentTransactionViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
     serializer_class = PaymentTransactionSerializer
     permission_classes = [IsAuthenticated]
+    lookup_field = 'authority'
 
     def get_queryset(self):
         qs = PaymentTransaction.objects.select_related('plan', 'user')
@@ -78,29 +79,15 @@ class PaymentTransactionViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin
 
         # Development/sandbox adapter. Replace this branch with the selected gateway's verification API.
         successful = request.data.get('success') in {True, 'true', '1', 1}
-        payment.verified_at = timezone.now()
-        if not successful:
-            payment.status = PaymentTransaction.Status.FAILED
-            payment.save(update_fields=['status', 'verified_at'])
-            return Response(PaymentTransactionSerializer(payment, context={'request': request}).data, status=status.HTTP_400_BAD_REQUEST)
+        is_success, updated_payment, subscription = PaymentService.verify_sandbox_payment(payment, successful)
 
-        payment.status = PaymentTransaction.Status.SUCCESS
-        payment.reference_id = f'MEL-{secrets.token_hex(6).upper()}'
-        payment.save(update_fields=['status', 'reference_id', 'verified_at'])
-
-        now = timezone.now()
-        Subscription.objects.filter(user=payment.user, is_active=True).update(is_active=False)
-        subscription = Subscription.objects.create(
-            user=payment.user,
-            plan=payment.plan,
-            starts_at=now,
-            ends_at=now + timedelta(days=30 * payment.months),
-            is_active=True,
-        )
-        payment.user.tier = payment.plan.tier
-        payment.user.save(update_fields=['tier'])
+        if not is_success:
+            return Response(
+                PaymentTransactionSerializer(updated_payment, context={'request': request}).data, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         return Response({
-            'payment': PaymentTransactionSerializer(payment, context={'request': request}).data,
+            'payment': PaymentTransactionSerializer(updated_payment, context={'request': request}).data,
             'subscription': SubscriptionSerializer(subscription).data,
         })
