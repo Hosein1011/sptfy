@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Mic2, UploadCloud, Trash2, Music, BarChart2, Loader2 } from "lucide-react";
 import Button from "../../components/common/Button";
-import { artistApi } from "@/lib/api"; // یا مسیر نسبی ../../lib/api
-import { Song } from "@/types";
+import { artistApi } from "../../lib/api";
+import { Song } from "../../types";
 
 export default function ArtistDashboardPage() {
   const [songTitle, setSongTitle] = useState("");
@@ -210,7 +210,7 @@ export default function ArtistDashboardPage() {
                     <div className="col-span-6 flex flex-col pr-4">
                       <span className="text-white font-semibold truncate">{track.title}</span>
                       <span className="text-xs text-melora-textSecondary truncate">
-                        {typeof track.album === "object" ? track.album?.title : track.album || "Single"}
+                        {track.albumTitle || "Single"}
                       </span>
                     </div>
 

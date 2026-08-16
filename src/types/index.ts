@@ -1,5 +1,5 @@
 export type Role = "USER" | "ARTIST" | "SUPPORTER" | "ADMIN";
-export type SubscriptionTier = "FREE" | "STANDARD" | "GOLD";
+export type SubscriptionTier = "FREE" | "STANDARD" | "SILVER" | "GOLD";
 export type Gender = "FEMALE" | "MALE" | "OTHER" | "UNSPECIFIED";
 
 export interface UserPreferences {

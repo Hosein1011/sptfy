@@ -146,6 +146,9 @@ export const authApi = {
   logout() {
     return apiRequest<void>("/auth/logout/", { method: "POST" });
   },
+  deleteAccount() {
+    return apiRequest<void>("/auth/me/", { method: "DELETE" });
+  },
   requestPasswordReset(email: string) {
     return apiRequest<{ message: string }>("/auth/password-reset/", {
       method: "POST",

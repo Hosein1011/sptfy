@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Button from "../common/Button";
 import NotificationBell from "./NotificationBell";
+import PWAInstallButton from "../pwa/PWAInstallButton";
 import { useAuthStore } from "../../store/authStore";
 
 export default function TopBar() {
@@ -60,7 +61,10 @@ export default function TopBar() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 md:gap-4">
+        {/* PWA Install Button integrated in TopBar */}
+        <PWAInstallButton variant="topbar" />
+
         {!isAuthenticated ? (
           <div className="flex items-center gap-3">
             <Link href="/register">
@@ -75,7 +79,7 @@ export default function TopBar() {
             </Link>
           </div>
         ) : (
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 md:gap-4">
             <NotificationBell />
 
             <div className="relative">
@@ -134,6 +138,9 @@ export default function TopBar() {
                     >
                       <Settings className="w-4 h-4" /> Settings
                     </Link>
+
+                    {/* In-menu PWA Install Option */}
+                    <PWAInstallButton variant="menu" />
                   </div>
 
                   <div className="p-2 border-t border-white/5">
