@@ -79,9 +79,10 @@ class MeView(APIView):
         return Response(UserSerializer(request.user, context={'request': request}).data)
 
     def delete(self, request):
-        Token.objects.filter(user=request.user).delete()
-        request.user.delete()
+        user = request.user
+        Token.objects.filter(user=user).delete()
         logout(request)
+        user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

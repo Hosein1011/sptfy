@@ -84,6 +84,13 @@ class AuthenticationTests(BaseApiTest):
     def test_me_requires_authentication(self):
         self.assertEqual(self.client.get('/api/auth/me/').status_code, 401)
 
+    def test_delete_account(self):
+        self.auth(self.user)
+        user_id = self.user.id
+        response = self.client.delete('/api/auth/me/')
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(User.objects.filter(id=user_id).exists())
+
     def test_follow_and_unfollow(self):
         self.auth(self.user)
         follow = self.client.post(f'/api/users/{self.artist.id}/follow/')

@@ -278,4 +278,28 @@ export const storage = {
       localStorage.removeItem(DB_KEYS.CURRENT_USER);
     }
   },
+
+  deleteUser: (userId: string): void => {
+    const users = ensureDefaultUsers();
+    const updatedUsers = users
+      .filter((u) => u.id !== userId)
+      .map((u) => ({
+        ...u,
+        followingIds: Array.isArray(u.followingIds) ? u.followingIds.filter((id) => id !== userId) : [],
+      }));
+    setDB(DB_KEYS.USERS, updatedUsers);
+
+    const playlists = getDB<Playlist>(DB_KEYS.PLAYLISTS);
+    const updatedPlaylists = playlists.filter((p) => p.ownerId !== userId);
+    setDB(DB_KEYS.PLAYLISTS, updatedPlaylists);
+
+    const notifications = getDB<Notification>(DB_KEYS.NOTIFICATIONS);
+    const updatedNotifications = notifications.filter((n) => n.userId !== userId);
+    setDB(DB_KEYS.NOTIFICATIONS, updatedNotifications);
+
+    const currentUser = storage.getCurrentUser();
+    if (currentUser && currentUser.id === userId) {
+      storage.logout();
+    }
+  },
 };

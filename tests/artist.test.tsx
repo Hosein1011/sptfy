@@ -1,69 +1,96 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ArtistDashboardPage from '../src/app/artist/page';
+import { artistApi } from '../src/lib/api';
 
-const localStorageMock = (() => {
-    let store: Record<string, string> = {};
-    return {
-        getItem: jest.fn((key: string) => store[key] || null),
-        setItem: jest.fn((key: string, value: string) => {
-            store[key] = value.toString();
-        }),
-        removeItem: jest.fn((key: string) => {
-            delete store[key];
-        }),
-        clear: jest.fn(() => {
-            store = {};
-        }),
-    };
-})();
-
-Object.defineProperty(window, 'localStorage', {
-    value: localStorageMock,
-});
+jest.mock('../src/lib/api', () => ({
+    artistApi: {
+        getMyCatalog: jest.fn(),
+        uploadSong: jest.fn(),
+        deleteSong: jest.fn(),
+    },
+}));
 
 describe('ArtistDashboardPage Test Suite', () => {
     beforeEach(() => {
-        window.localStorage.clear();
         jest.clearAllMocks();
+        (artistApi.getMyCatalog as jest.Mock).mockResolvedValue({
+            results: [],
+            count: 0,
+        });
     });
 
     it('renders correctly and allows uploading a new song', async () => {
+        const mockNewSong = {
+            id: 's-123',
+            title: 'آهنگ تستی',
+            artistName: 'Luna Echo',
+            albumTitle: 'آلبوم تستی',
+            audioUrl: '/audio/test.mp3',
+            duration: 180,
+            listeners: 0,
+        };
+        (artistApi.uploadSong as jest.Mock).mockResolvedValue(mockNewSong);
+
         render(<ArtistDashboardPage />);
 
-        const inputs = screen.getAllByRole('textbox');
-        const titleInput = inputs[0];
-        const albumInput = inputs[1];
-        const submitButton = screen.getByRole('button', { name: /upload|ثبت|افزودن/i });
+        const titleInput = screen.getByPlaceholderText(/e.g. Midnight Drive/i);
+        const albumInput = screen.getByPlaceholderText(/e.g. City Lights EP/i);
+        const submitButton = screen.getByRole('button', { name: /upload track/i });
 
         fireEvent.change(titleInput, { target: { value: 'آهنگ تستی' } });
         fireEvent.change(albumInput, { target: { value: 'آلبوم تستی' } });
+
+        // Create dummy file for audio input
+        const file = new File(['dummy audio'], 'test.mp3', { type: 'audio/mp3' });
+        const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+        if (fileInput) {
+            Object.defineProperty(fileInput, 'files', { value: [file] });
+            fireEvent.change(fileInput);
+        }
+
         fireEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(window.localStorage.setItem).toHaveBeenCalledWith(
-                'sptfy_artist_songs',
-                expect.stringContaining('آهنگ تستی')
+            expect(artistApi.uploadSong).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    title: 'آهنگ تستی',
+                    albumName: 'آلبوم تستی',
+                })
             );
         });
     });
 
     it('handles deleting an existing song successfully', async () => {
-        const mockSongs = [{ id: 1, title: 'آهنگ قدیمی', album: 'آلبوم قدیمی' }];
-        window.localStorage.setItem('sptfy_artist_songs', JSON.stringify(mockSongs));
+        window.confirm = jest.fn(() => true);
+        const mockSongs = [
+            {
+                id: 's-old',
+                title: 'آهنگ قدیمی',
+                artistName: 'Luna Echo',
+                albumTitle: 'آلبوم قدیمی',
+                audioUrl: '/audio/old.mp3',
+                duration: 200,
+                listeners: 50,
+            },
+        ];
+        (artistApi.getMyCatalog as jest.Mock).mockResolvedValue({
+            results: mockSongs,
+            count: 1,
+        });
+        (artistApi.deleteSong as jest.Mock).mockResolvedValue(undefined);
 
         render(<ArtistDashboardPage />);
 
-        const deleteButtons = screen.getAllByRole('button');
-        const deleteButton = deleteButtons[deleteButtons.length - 1];
+        await waitFor(() => {
+            expect(screen.getByText('آهنگ قدیمی')).toBeInTheDocument();
+        });
 
+        const deleteButton = screen.getByTitle(/delete track/i);
         fireEvent.click(deleteButton);
 
         await waitFor(() => {
-            expect(window.localStorage.setItem).toHaveBeenCalledWith(
-                'sptfy_artist_songs',
-                expect.not.stringContaining('آهنگ قدیمی')
-            );
+            expect(artistApi.deleteSong).toHaveBeenCalledWith('s-old');
         });
     });
 });

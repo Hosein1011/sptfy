@@ -27,7 +27,7 @@ export function usePWA() {
   const checkIsInstalled = useCallback(() => {
     if (typeof window === "undefined") return false;
     const isStandalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
+      (typeof window.matchMedia === "function" && window.matchMedia("(display-mode: standalone)").matches) ||
       (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
       document.referrer.includes("android-app://");
     return isStandalone;

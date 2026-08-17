@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import Button from "../../../components/common/Button";
 import { useAuthStore } from "../../../store/authStore";
-import { authApi, userApi, UserPreferences } from "../../../lib/api";
+import { userApi, tokenStorage, UserPreferences } from "../../../lib/api";
 
 // Custom Melora Toggle Switch
 const SettingToggle = ({ label, description, isOn, onToggle }: { label: string, description?: string, isOn: boolean, onToggle: () => void }) => (
@@ -36,7 +36,7 @@ const SettingToggle = ({ label, description, isOn, onToggle }: { label: string, 
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const { user, logout, deleteAccount } = useAuthStore();
 
   const [preferences, setPreferences] = useState<UserPreferences>({
     highQuality: true,
@@ -53,11 +53,17 @@ export default function SettingsPage() {
     if (!user) return;
     
     const fetchPreferences = async () => {
+      if (!tokenStorage.get()) {
+        setIsLoadingPrefs(false);
+        return;
+      }
       try {
         const data = await userApi.getPreferences();
-        setPreferences(prev => ({ ...prev, ...data }));
+        if (data && typeof data === "object") {
+          setPreferences(prev => ({ ...prev, ...data }));
+        }
       } catch (error) {
-        console.error("Failed to load preferences:", error);
+        console.warn("Could not load backend preferences:", error);
       } finally {
         setIsLoadingPrefs(false);
       }
@@ -73,12 +79,12 @@ export default function SettingsPage() {
     
     setPreferences(prev => ({ ...prev, [key]: newValue }));
 
-    try {
-      await userApi.updatePreferences({ [key]: newValue });
-    } catch (error) {
-      // اگر خطایی رخ داد، استیت رو برمی‌گردونیم
-      setPreferences(prev => ({ ...prev, [key]: currentValue }));
-      alert("Failed to save settings. Please try again.");
+    if (tokenStorage.get()) {
+      try {
+        await userApi.updatePreferences({ [key]: newValue });
+      } catch (error) {
+        console.warn("Failed to save setting to backend:", error);
+      }
     }
   };
 
@@ -96,8 +102,7 @@ export default function SettingsPage() {
 
     setIsDeleting(true);
     try {
-      await authApi.deleteAccount(); 
-      logout();
+      await deleteAccount();
       router.push("/");
     } catch (error) {
       alert(error instanceof Error ? error.message : "Failed to delete account. Please try again.");

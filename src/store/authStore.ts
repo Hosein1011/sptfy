@@ -10,6 +10,7 @@ interface AuthState {
   hydrate: () => Promise<void>;
   login: (email: string, pass: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<boolean>;
   updateSubscription: (planType: SubscriptionTier) => void;
   setUser: (user: User) => void;
   hasPermission: (requiredRole: Role) => boolean;
@@ -70,6 +71,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     tokenStorage.clear();
     storage.logout();
     set({ user: null, isAuthenticated: false });
+  },
+
+  deleteAccount: async () => {
+    const { user } = get();
+    try {
+      if (tokenStorage.get()) {
+        await authApi.deleteAccount();
+      }
+    } catch (err) {
+      // If backend is unreachable or offline, proceed with local cleanup
+      console.warn("Backend account deletion could not be completed, proceeding with local deletion:", err);
+    }
+    if (user?.id) {
+      storage.deleteUser(user.id);
+    }
+    tokenStorage.clear();
+    storage.logout();
+    set({ user: null, isAuthenticated: false });
+    return true;
   },
 
   setUser: (user) => {

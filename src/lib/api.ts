@@ -48,7 +48,7 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const headers = new Headers(options.headers);
   const isFormData = options.body instanceof FormData;
-  if (!isFormData && !headers.has("Content-Type")) {
+  if (!isFormData && options.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -67,12 +67,12 @@ export async function apiRequest<T>(
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const error = data?.error;
-    const fields = error?.fields || data;
+    const fields = error?.fields || (data && typeof data === "object" && !data.message && !data.detail ? data : undefined);
     const flatValues = fields && typeof fields === "object"
       ? Object.values(fields).flat().map(String)
       : [];
     const message =
-      error?.message || data?.detail || flatValues.join(" ") || "Request failed.";
+      data?.message || error?.message || data?.detail || flatValues.join(" ") || "Request failed.";
     throw new ApiError(String(message), response.status, error?.fields);
   }
 
@@ -309,10 +309,10 @@ export type UserPreferences = {
 
 export const userApi = {
   getPreferences() {
-    return apiRequest<UserPreferences>("/user/preferences/");
+    return apiRequest<UserPreferences>("/auth/preferences/");
   },
   updatePreferences(payload: UserPreferences) {
-    return apiRequest<UserPreferences>("/user/preferences/", {
+    return apiRequest<UserPreferences>("/auth/preferences/", {
       method: "PATCH",
       body: JSON.stringify(payload),
     });
