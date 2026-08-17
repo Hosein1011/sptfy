@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import MeloraLogo from "../brand/MeloraLogo";
 import { useAuthStore } from "../../store/authStore";
+import { useUIStore } from "../../store/uiStore";
 import { useAtmosphere, MOOD_CONFIG, MoodType } from "../brand/AtmosphereBackground";
 
 interface SidebarProps {
@@ -32,7 +33,7 @@ export default function Sidebar({ onCreatePlaylist }: SidebarProps) {
   const pathname = usePathname();
   const { user, isAuthenticated } = useAuthStore();
   const { activeMood, setActiveMood } = useAtmosphere();
-  const [collapsed, setCollapsed] = useState(false);
+  const { sidebarCollapsed: collapsed, toggleSidebar } = useUIStore();
 
   const mainNav = [
     { label: "Home", href: "/", icon: Home },
@@ -75,7 +76,7 @@ export default function Sidebar({ onCreatePlaylist }: SidebarProps) {
         )}
 
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={toggleSidebar}
           className="p-1.5 rounded-lg text-melora-textMuted hover:text-white hover:bg-white/8 transition-colors"
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >

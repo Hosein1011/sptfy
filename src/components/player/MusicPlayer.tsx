@@ -23,6 +23,7 @@ import Slider from "../ui/Slider";
 import IconButton from "../ui/IconButton";
 import { ApiError, songsApi, tokenStorage } from "../../lib/api";
 import { usePlayerStore } from "../../store/playerStore";
+import { useUIStore } from "../../store/uiStore";
 
 const formatTime = (seconds: number) => {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -37,6 +38,8 @@ export default function MusicPlayer() {
   const [sidePanelTab, setSidePanelTab] = useState<"queue" | "lyrics">("queue");
   const [liked, setLiked] = useState(false);
   const [playbackError, setPlaybackError] = useState("");
+
+  const { sidebarCollapsed } = useUIStore();
 
   const {
     currentSong,
@@ -190,17 +193,22 @@ export default function MusicPlayer() {
 
       {/* Floating Glass Player Bar */}
       <div
-        className="
+        className={`
           fixed z-40
           bottom-18 md:bottom-5
-          left-3 right-3 md:left-6 md:right-6 lg:left-8 lg:right-8
+          left-3 right-3 md:right-6 lg:right-8
+          ${
+            sidebarCollapsed
+              ? "md:left-[calc(5rem+1.5rem)] lg:left-[calc(5rem+2rem)]"
+              : "md:left-[calc(16rem+1.5rem)] lg:left-[calc(18rem+2rem)]"
+          }
           h-[68px] md:h-[84px]
           glass-player rounded-player
           px-3 md:px-6
           flex items-center justify-between gap-3 md:gap-6
           shadow-glow-ambient
-          transition-all duration-base
-        "
+          transition-all duration-base ease-out
+        `}
       >
         {/* Left Track Info */}
         <div className="flex items-center gap-3 w-auto md:w-1/4 min-w-0 max-w-[240px] md:max-w-xs">
