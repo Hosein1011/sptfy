@@ -8,7 +8,8 @@ import {
 } from "lucide-react";
 import Button from "../../../components/common/Button";
 import { useAuthStore } from "../../../store/authStore";
-import { userApi, tokenStorage, UserPreferences } from "../../../lib/api";
+import { authApi, userApi, tokenStorage, UserPreferences } from "../../../lib/api";
+import { storage } from "../../../lib/storage";
 
 // Custom Melora Toggle Switch
 const SettingToggle = ({ label, description, isOn, onToggle }: { label: string, description?: string, isOn: boolean, onToggle: () => void }) => (
@@ -102,7 +103,25 @@ export default function SettingsPage() {
 
     setIsDeleting(true);
     try {
-      await deleteAccount();
+      if (typeof deleteAccount === "function") {
+        await deleteAccount();
+      } else if (typeof useAuthStore.getState().deleteAccount === "function") {
+        await useAuthStore.getState().deleteAccount();
+      } else {
+        if (tokenStorage.get()) {
+          try {
+            await authApi.deleteAccount();
+          } catch (err) {
+            console.warn("Backend deletion:", err);
+          }
+        }
+        if (user?.id) {
+          storage.deleteUser(user.id);
+        }
+        tokenStorage.clear();
+        storage.logout();
+        useAuthStore.setState({ user: null, isAuthenticated: false });
+      }
       router.push("/");
     } catch (error) {
       alert(error instanceof Error ? error.message : "Failed to delete account. Please try again.");
