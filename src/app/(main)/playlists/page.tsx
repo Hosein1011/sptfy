@@ -2,18 +2,37 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Edit3, ListMusic, Lock, Play, Plus, Trash2, X } from "lucide-react";
+import {
+  Edit3,
+  ListMusic,
+  Lock,
+  Play,
+  Plus,
+  Trash2,
+  X,
+  Music,
+  Sparkles,
+} from "lucide-react";
 import { playlistsApi } from "../../../lib/api";
 import { useAuthStore } from "../../../store/authStore";
 import { usePlayerStore } from "../../../store/playerStore";
-import { Playlist } from "../../../types";
+import { Playlist, Song } from "../../../types";
+import Button from "../../../components/common/Button";
+import IconButton from "../../../components/ui/IconButton";
+import Modal from "../../../components/ui/Modal";
+import Input from "../../../components/ui/Input";
+import EmptyState from "../../../components/ui/EmptyState";
+import { useToast } from "../../../components/ui/ToastProvider";
 
-const limitForTier = (tier?: string) => tier === "FREE" ? 6 : tier === "STANDARD" ? 100 : null;
+const limitForTier = (tier?: string) =>
+  tier === "FREE" ? 6 : tier === "STANDARD" ? 100 : null;
 
 export default function PlaylistsPage() {
   const user = useAuthStore((state) => state.user);
   const playSong = usePlayerStore((state) => state.playSong);
   const addToQueue = usePlayerStore((state) => state.addToQueue);
+  const { toast } = useToast();
+
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -35,42 +54,86 @@ export default function PlaylistsPage() {
       setError("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load playlists.");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { load(); }, [user?.id]);
+  useEffect(() => {
+    load();
+  }, [user?.id]);
 
   const create = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!name.trim()) return;
     try {
-      const created = await playlistsApi.create({ name: name.trim(), description: description.trim(), is_public: isPublic });
+      const created = await playlistsApi.create({
+        name: name.trim(),
+        description: description.trim(),
+        is_public: isPublic,
+      });
       setPlaylists((items) => [created, ...items]);
-      setName(""); setDescription(""); setIsPublic(true); setShowCreate(false); setError("");
-    } catch (e) { setError(e instanceof Error ? e.message : "Could not create playlist."); }
+      setName("");
+      setDescription("");
+      setIsPublic(true);
+      setShowCreate(false);
+      setError("");
+      toast("Playlist created!", "success");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not create playlist.");
+      toast("Could not create playlist", "error");
+    }
   };
 
   const saveEdit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!editing) return;
     try {
-      const updated = await playlistsApi.update(editing.id, { name: editing.name, description: editing.description, is_public: editing.is_public });
-      setPlaylists((items) => items.map((item) => item.id === updated.id ? updated : item));
+      const updated = await playlistsApi.update(editing.id, {
+        name: editing.name,
+        description: editing.description,
+        is_public: editing.is_public,
+      });
+      setPlaylists((items) =>
+        items.map((item) => (item.id === updated.id ? updated : item))
+      );
       setEditing(null);
-    } catch (e) { setError(e instanceof Error ? e.message : "Could not update playlist."); }
+      toast("Playlist updated", "success");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not update playlist.");
+    }
   };
 
   const removePlaylist = async (playlist: Playlist) => {
     if (!window.confirm(`Delete “${playlist.name}”?`)) return;
-    try { await playlistsApi.remove(playlist.id); setPlaylists((items) => items.filter((item) => item.id !== playlist.id)); }
-    catch (e) { setError(e instanceof Error ? e.message : "Could not delete playlist."); }
+    try {
+      await playlistsApi.remove(playlist.id);
+      setPlaylists((items) => items.filter((item) => item.id !== playlist.id));
+      toast("Playlist deleted", "info");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not delete playlist.");
+    }
   };
 
   const removeSong = async (playlistId: string, songId: string) => {
     try {
       await playlistsApi.removeSong(playlistId, songId);
-      setPlaylists((items) => items.map((p) => p.id === playlistId ? { ...p, songIds: p.songIds.filter((id) => id !== songId), tracks: (p.tracks || []).filter((song) => song.id !== songId), trackCount: Math.max(0, (p.trackCount || 1) - 1) } : p));
-    } catch (e) { setError(e instanceof Error ? e.message : "Could not remove song."); }
+      setPlaylists((items) =>
+        items.map((p) =>
+          p.id === playlistId
+            ? {
+                ...p,
+                songIds: p.songIds.filter((id) => id !== songId),
+                tracks: (p.tracks || []).filter((song) => song.id !== songId),
+                trackCount: Math.max(0, (p.trackCount || 1) - 1),
+              }
+            : p
+        )
+      );
+      toast("Song removed from playlist", "info");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not remove song.");
+    }
   };
 
   const playPlaylist = (playlist: Playlist) => {
@@ -78,40 +141,283 @@ export default function PlaylistsPage() {
     if (!tracks.length) return;
     tracks.slice(1).forEach(addToQueue);
     playSong(tracks[0]);
+    toast(`Playing "${playlist.name}"`, "info");
   };
 
-  const empty = useMemo(() => !loading && playlists.length === 0, [loading, playlists.length]);
+  const empty = useMemo(
+    () => !loading && playlists.length === 0,
+    [loading, playlists.length]
+  );
 
   return (
-    <main className="flex-1 w-full p-6 md:p-10 pb-32 max-w-7xl mx-auto">
-      <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-5">
-        <div><h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3"><ListMusic className="w-8 h-8 text-melora-pink" />Your Playlists</h1><p className="text-melora-textSecondary mt-2">{limit === null ? "Unlimited playlists" : `${playlists.length} / ${limit} playlists on your plan`}</p></div>
-        <button onClick={() => setShowCreate(true)} disabled={!canCreate} className="px-5 py-3 rounded-xl bg-gradient-01 font-semibold flex items-center justify-center gap-2 disabled:opacity-40"><Plus className="w-5 h-5" /> Create Playlist</button>
+    <main className="w-full px-4 md:px-8 lg:px-10 py-6 md:py-8 max-w-7xl mx-auto space-y-8">
+      {/* Header */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
+            <ListMusic className="w-8 h-8 text-melora-pink" />
+            <span>Your Playlists</span>
+          </h1>
+          <p className="text-xs md:text-sm text-melora-textSecondary mt-1">
+            {limit === null
+              ? "Unlimited playlists on your Gold account"
+              : `${playlists.length} of ${limit} playlists created`}
+          </p>
+        </div>
+
+        <Button
+          variant="primary"
+          size="md"
+          leftIcon={<Plus className="w-4 h-4" />}
+          onClick={() => setShowCreate(true)}
+          disabled={!canCreate}
+          className="rounded-full shadow-glow"
+        >
+          Create Playlist
+        </Button>
       </header>
 
-      {error && <p className="mb-5 text-sm text-red-300">{error}</p>}
-      {loading ? <div className="py-20 text-center text-melora-textMuted">Loading playlists...</div> : empty ? (
-        <section className="rounded-3xl border border-dashed border-white/10 p-14 text-center"><ListMusic className="w-14 h-14 mx-auto text-melora-textMuted mb-4" /><h2 className="text-2xl font-bold">No playlists yet</h2><p className="text-melora-textSecondary mt-2">Create your first playlist, then add songs from Albums & Singles.</p><button onClick={() => setShowCreate(true)} className="mt-6 px-6 py-3 rounded-xl bg-gradient-01 font-semibold">Create First Playlist</button></section>
+      {error && (
+        <div className="p-3.5 rounded-card bg-melora-error/15 border border-melora-error/30 text-xs text-red-200">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="py-20 text-center text-xs text-melora-textMuted flex items-center justify-center gap-2">
+          <Sparkles className="w-4 h-4 text-melora-purple animate-pulse" />
+          <span>Loading playlists...</span>
+        </div>
+      ) : empty ? (
+        <EmptyState
+          title="No playlists yet"
+          description="Create your first playlist and start curating your soundtrack."
+          actionLabel="Create First Playlist"
+          onAction={() => setShowCreate(true)}
+        />
       ) : (
-        <div className="space-y-5">
+        <div className="space-y-6">
           {playlists.map((playlist) => (
-            <section key={playlist.id} className="rounded-3xl bg-melora-surfaceLayer/30 border border-white/5 p-5 md:p-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4 min-w-0"><div className="w-20 h-20 rounded-xl bg-gradient-02 overflow-hidden flex items-center justify-center shrink-0">{playlist.coverUrl ? <img src={playlist.coverUrl} alt="" className="w-full h-full object-cover" /> : <ListMusic className="w-8 h-8 text-white/50" />}</div><div className="min-w-0"><h2 className="text-xl font-bold truncate">{playlist.name}</h2><p className="text-sm text-melora-textMuted">{playlist.trackCount ?? playlist.tracks?.length ?? 0} tracks • {playlist.is_public ? "Public" : "Private"}</p>{playlist.description && <p className="text-sm text-melora-textSecondary mt-1 line-clamp-2">{playlist.description}</p>}</div></div>
-                <div className="flex flex-wrap gap-2"><button onClick={() => playPlaylist(playlist)} disabled={!playlist.tracks?.length} className="px-4 py-2 rounded-xl bg-melora-pink/90 font-semibold flex gap-2 items-center disabled:opacity-30"><Play className="w-4 h-4 fill-white" /> Play</button><Link href={`/albums?playlist=${playlist.id}`} className="px-4 py-2 rounded-xl border border-white/10 flex gap-2 items-center"><Plus className="w-4 h-4" /> Add Songs</Link><button onClick={() => setEditing({ ...playlist })} className="p-2 rounded-xl border border-white/10"><Edit3 className="w-4 h-4" /></button><button onClick={() => removePlaylist(playlist)} className="p-2 rounded-xl border border-white/10 hover:text-red-300"><Trash2 className="w-4 h-4" /></button></div>
+            <section
+              key={playlist.id}
+              className="rounded-panel glass-panel border border-white/8 p-5 md:p-7 shadow-soft-md"
+            >
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="w-20 h-20 rounded-card bg-gradient-sunset overflow-hidden flex items-center justify-center shrink-0 border border-white/10 shadow-soft-sm">
+                    {playlist.coverUrl ? (
+                      <img
+                        src={playlist.coverUrl}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <ListMusic className="w-8 h-8 text-white/60" />
+                    )}
+                  </div>
+
+                  <div className="min-w-0">
+                    <h2 className="text-xl font-bold text-white truncate">
+                      {playlist.name}
+                    </h2>
+                    <p className="text-xs text-melora-textSecondary mt-0.5">
+                      {playlist.trackCount ?? playlist.tracks?.length ?? 0} tracks •{" "}
+                      {playlist.is_public ? "Public" : "Private"}
+                    </p>
+                    {playlist.description && (
+                      <p className="text-xs text-melora-textMuted mt-1 line-clamp-2">
+                        {playlist.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    leftIcon={<Play className="w-3.5 h-3.5 fill-current" />}
+                    onClick={() => playPlaylist(playlist)}
+                    disabled={!playlist.tracks?.length}
+                    className="rounded-full shadow-glow"
+                  >
+                    Play
+                  </Button>
+
+                  <Link href={`/albums?playlist=${playlist.id}`}>
+                    <Button variant="secondary" size="sm" className="rounded-full">
+                      Add Songs
+                    </Button>
+                  </Link>
+
+                  <IconButton
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setEditing({ ...playlist })}
+                    tooltip="Edit Playlist"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </IconButton>
+
+                  <IconButton
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => removePlaylist(playlist)}
+                    tooltip="Delete Playlist"
+                    className="hover:text-melora-error hover:border-melora-error/40"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </IconButton>
+                </div>
               </div>
 
-              <div className="mt-5 border-t border-white/5 pt-3">
-                {playlist.tracks?.length ? playlist.tracks.map((song, index) => <div key={song.id} className="grid grid-cols-[28px_1fr_auto] gap-3 items-center p-2 rounded-lg hover:bg-white/5"><span className="text-xs text-melora-textMuted text-center">{index + 1}</span><button onClick={() => playSong(song)} className="text-left min-w-0"><p className="font-medium truncate">{song.title}</p><p className="text-xs text-melora-textMuted truncate">{song.artistName}</p></button><button onClick={() => removeSong(playlist.id, song.id)} className="text-xs px-3 py-1.5 rounded-lg border border-white/10 hover:text-red-300">Remove</button></div>) : <div className="py-4 text-sm text-melora-textMuted flex items-center gap-2"><Lock className="w-4 h-4" />This playlist is empty. Add songs to start listening.</div>}
+              {/* Playlist Tracks List */}
+              <div className="mt-6 border-t border-white/6 pt-4 space-y-1">
+                {playlist.tracks?.length ? (
+                  playlist.tracks.map((song, index) => (
+                    <div
+                      key={song.id}
+                      className="flex items-center justify-between p-2.5 rounded-card hover:bg-white/6 transition-colors group"
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                        <span className="text-xs font-mono text-melora-textMuted w-5 text-center">
+                          {index + 1}
+                        </span>
+                        <button
+                          onClick={() => playSong(song)}
+                          className="text-left min-w-0 flex-1"
+                        >
+                          <p className="font-semibold text-sm text-white truncate group-hover:text-melora-purple transition-colors">
+                            {song.title}
+                          </p>
+                          <p className="text-xs text-melora-textSecondary truncate">
+                            {song.artistName}
+                          </p>
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={() => removeSong(playlist.id, song.id)}
+                        className="text-xs px-3 py-1 rounded-full text-melora-textMuted hover:text-melora-error hover:bg-melora-error/10 transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-4 text-xs text-melora-textMuted flex items-center gap-2">
+                    <Lock className="w-4 h-4" />
+                    <span>This playlist is empty. Add songs from your catalog.</span>
+                  </div>
+                )}
               </div>
             </section>
           ))}
         </div>
       )}
 
-      {showCreate && <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"><form onSubmit={create} className="w-full max-w-lg rounded-3xl bg-melora-surfaceLayer border border-white/10 p-7 space-y-4"><div className="flex justify-between items-center"><h2 className="text-2xl font-bold">Create Playlist</h2><button type="button" onClick={() => setShowCreate(false)}><X className="w-5 h-5" /></button></div><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Playlist name" className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3" /><textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description (optional)" rows={3} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3" /><label className="flex items-center gap-2 text-sm text-melora-textSecondary"><input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} /> Public playlist</label><button className="w-full py-3 rounded-xl bg-gradient-01 font-semibold">Create</button></form></div>}
+      {/* Create Modal */}
+      <Modal
+        isOpen={showCreate}
+        onClose={() => setShowCreate(false)}
+        title="Create Playlist"
+        description="Craft a soundtrack for your vibe."
+      >
+        <form onSubmit={create} className="space-y-4">
+          <Input
+            label="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Playlist name"
+            required
+            autoFocus
+          />
 
-      {editing && <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"><form onSubmit={saveEdit} className="w-full max-w-lg rounded-3xl bg-melora-surfaceLayer border border-white/10 p-7 space-y-4"><div className="flex justify-between items-center"><h2 className="text-2xl font-bold">Edit Playlist</h2><button type="button" onClick={() => setEditing(null)}><X className="w-5 h-5" /></button></div><input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3" /><textarea value={editing.description || ""} onChange={(e) => setEditing({ ...editing, description: e.target.value })} rows={3} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3" /><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={Boolean(editing.is_public)} onChange={(e) => setEditing({ ...editing, is_public: e.target.checked })} /> Public playlist</label><button className="w-full py-3 rounded-xl bg-gradient-01 font-semibold">Save</button></form></div>}
+          <Input
+            label="Description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Optional description"
+          />
+
+          <label className="flex items-center gap-2.5 text-xs text-melora-textSecondary cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isPublic}
+              onChange={(e) => setIsPublic(e.target.checked)}
+              className="accent-purple-500 rounded"
+            />
+            <span>Make playlist public</span>
+          </label>
+
+          <div className="flex justify-end gap-3 pt-3">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowCreate(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" size="sm" className="rounded-full shadow-glow">
+              Create
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal
+        isOpen={Boolean(editing)}
+        onClose={() => setEditing(null)}
+        title="Edit Playlist"
+      >
+        {editing && (
+          <form onSubmit={saveEdit} className="space-y-4">
+            <Input
+              label="Name"
+              value={editing.name}
+              onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+              required
+            />
+
+            <Input
+              label="Description"
+              value={editing.description || ""}
+              onChange={(e) =>
+                setEditing({ ...editing, description: e.target.value })
+              }
+            />
+
+            <label className="flex items-center gap-2.5 text-xs text-melora-textSecondary cursor-pointer">
+              <input
+                type="checkbox"
+                checked={Boolean(editing.is_public)}
+                onChange={(e) =>
+                  setEditing({ ...editing, is_public: e.target.checked })
+                }
+                className="accent-purple-500 rounded"
+              />
+              <span>Public playlist</span>
+            </label>
+
+            <div className="flex justify-end gap-3 pt-3">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditing(null)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" size="sm" className="rounded-full shadow-glow">
+                Save
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </main>
   );
 }

@@ -2,11 +2,14 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Disc3, ListPlus, Play, Search, Download } from "lucide-react";
+import { Disc3, ListPlus, Play, Search, Download, Sparkles, Music } from "lucide-react";
 import { albumsApi, playlistsApi, songsApi } from "../../../lib/api";
 import { useAuthStore } from "../../../store/authStore";
 import { usePlayerStore } from "../../../store/playerStore";
 import { Album, Playlist, Song } from "../../../types";
+import SearchBar from "../../../components/ui/SearchBar";
+import IconButton from "../../../components/ui/IconButton";
+import { useToast } from "../../../components/ui/ToastProvider";
 
 type SortBy = "releaseDate" | "listeners";
 
@@ -14,6 +17,8 @@ export default function AlbumsPage() {
   const [requestedPlaylist, setRequestedPlaylist] = useState<string | null>(null);
   const user = useAuthStore((state) => state.user);
   const playSong = usePlayerStore((state) => state.playSong);
+  const { toast } = useToast();
+
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("releaseDate");
   const [albums, setAlbums] = useState<Album[]>([]);
@@ -52,7 +57,10 @@ export default function AlbumsPage() {
 
   useEffect(() => {
     if (!user) return;
-    playlistsApi.list({ owner: user.id, page_size: 100 }).then((response) => setPlaylists(response.results)).catch(() => {});
+    playlistsApi
+      .list({ owner: user.id, page_size: 100 })
+      .then((response) => setPlaylists(response.results))
+      .catch(() => {});
   }, [user?.id]);
 
   const addToPlaylist = async (playlistId: string, song: Song) => {
@@ -62,8 +70,10 @@ export default function AlbumsPage() {
       const alreadyAdded = Boolean(playlist?.songIds.includes(song.id));
       if (alreadyAdded) {
         await playlistsApi.removeSong(playlistId, song.id);
+        toast(`Removed from "${playlist?.name}"`, "info");
       } else {
         await playlistsApi.addSong(playlistId, song.id);
+        toast(`Added to "${playlist?.name}"`, "success");
       }
       const refreshed = await playlistsApi.list({ owner: user?.id, page_size: 100 });
       setPlaylists(refreshed.results);
@@ -74,12 +84,12 @@ export default function AlbumsPage() {
 
   const handleDownload = async (song: Song) => {
     if (!user) {
-      alert("Please log in to download songs.");
+      toast("Please log in to download songs.", "info");
       return;
     }
 
     if (user.tier !== "SILVER" && user.tier !== "GOLD") {
-      alert("Downloads are only available for Silver and Gold members. Please upgrade your subscription!");
+      toast("Downloads require a Silver or Gold membership.", "info");
       return;
     }
 
@@ -93,9 +103,10 @@ export default function AlbumsPage() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        toast("Download started", "success");
       }
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to download the song.");
+      toast(e instanceof Error ? e.message : "Failed to download the song.", "error");
     }
   };
 
@@ -104,150 +115,222 @@ export default function AlbumsPage() {
   const allSinglesSection = singles.length ? singles : albumSongs;
 
   return (
-    <main className="flex-1 w-full p-6 md:p-10 pb-32 max-w-7xl mx-auto">
-      <header className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3">
-          <Disc3 className="w-8 h-8 text-melora-purple" />Albums & Singles
-        </h1>
-        <p className="text-melora-textSecondary mt-2">
-          Search by song, album, or artist. Sort the catalog by listeners or release date.
-        </p>
+    <main className="w-full px-4 md:px-8 lg:px-10 py-6 md:py-8 max-w-7xl mx-auto space-y-8">
+      {/* Header */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
+            <Disc3 className="w-8 h-8 text-melora-purple" />
+            <span>Music Catalog</span>
+          </h1>
+          <p className="text-xs md:text-sm text-melora-textSecondary mt-1">
+            Explore studio albums, singles, and atmospheric recordings.
+          </p>
+        </div>
+
+        {/* Sort selector */}
+        <div className="flex items-center gap-3">
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortBy)}
+            className="bg-melora-cardSurface border border-white/10 rounded-full px-4 py-2.5 text-xs text-white focus:outline-none focus:border-melora-purple/60 cursor-pointer"
+          >
+            <option value="releaseDate">Newest Releases</option>
+            <option value="listeners">Most Listeners</option>
+          </select>
+        </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 mb-8">
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-melora-textMuted" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search song, album, or artist..."
-            className="w-full bg-melora-surfaceLayer/40 border border-white/10 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:border-melora-purple"
-          />
-        </div>
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as SortBy)}
-          className="bg-melora-bgPrimary border border-white/10 rounded-xl px-4 py-3"
-        >
-          <option value="releaseDate">Newest releases</option>
-          <option value="listeners">Most listeners</option>
-        </select>
+      {/* Search Filter */}
+      <div className="max-w-md">
+        <SearchBar
+          value={query}
+          onChange={setQuery}
+          placeholder="Filter by song, album, or artist..."
+          size="sm"
+        />
       </div>
 
       {requestedPlaylist && (
-        <div className="mb-6 rounded-xl border border-melora-pink/20 bg-melora-pink/5 px-4 py-3 text-sm">
-          Choose “Add/Remove” on a song to update the selected playlist.
+        <div className="p-4 rounded-card border border-melora-pink/30 bg-melora-pink/10 text-xs text-pink-200">
+          Select "Add to Playlist" on any song to link it to your playlist.
         </div>
       )}
-      {error && <p className="mb-5 text-sm text-red-300">{error}</p>}
+
+      {error && (
+        <div className="p-3.5 rounded-card bg-melora-error/15 border border-melora-error/30 text-xs text-red-200">
+          {error}
+        </div>
+      )}
 
       {loading ? (
-        <div className="py-16 text-center text-melora-textMuted">Loading catalog...</div>
+        <div className="py-20 text-center text-xs text-melora-textMuted flex items-center justify-center gap-2">
+          <Sparkles className="w-4 h-4 text-melora-purple animate-pulse" />
+          <span>Loading catalog...</span>
+        </div>
       ) : (
         <>
-          <section className="mb-12">
-            <h2 className="text-2xl font-bold mb-5">Albums</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5">
+          {/* Albums Grid */}
+          <section className="space-y-4">
+            <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight">
+              Albums & Collections
+            </h2>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
               {albums.map((album) => (
-                <article key={album.id} className="group min-w-0">
-                  <Link href={`/albums/${album.id}`} className="block">
-                    <div className="aspect-square rounded-card bg-gradient-03 overflow-hidden mb-3 group-hover:-translate-y-1 transition-transform">
-                      {album.coverUrl ? (
-                        <img src={album.coverUrl} alt={album.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Disc3 className="w-12 h-12 text-white/40" />
-                        </div>
-                      )}
+                <Link
+                  key={album.id}
+                  href={`/albums/${album.id}`}
+                  className="glass-card rounded-card-lg p-3.5 group select-none block"
+                >
+                  <div className="aspect-square rounded-card bg-gradient-purple-glow overflow-hidden mb-3 border border-white/10 relative">
+                    {album.coverUrl ? (
+                      <img
+                        src={album.coverUrl}
+                        alt={album.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Disc3 className="w-12 h-12 text-white/40" />
+                      </div>
+                    )}
+
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-gradient-primary text-white flex items-center justify-center shadow-glow">
+                        <Play className="w-4 h-4 fill-current ml-0.5" />
+                      </div>
                     </div>
-                    <p className="font-bold truncate hover:underline">{album.title}</p>
-                  </Link>
-                  <Link href={`/artists/${album.artistId}`} className="text-sm text-melora-textSecondary truncate block hover:text-white hover:underline">
-                    {album.artistName}
-                  </Link>
-                  <p className="text-xs text-melora-textMuted">
-                    {new Date(album.releaseDate).getFullYear()} • {album.songCount} songs
+                  </div>
+
+                  <p className="font-bold text-sm text-white truncate group-hover:text-melora-purple transition-colors">
+                    {album.title}
                   </p>
-                </article>
+                  <p className="text-xs text-melora-textSecondary truncate mt-0.5">
+                    {album.artistName}
+                  </p>
+                  <p className="text-[11px] font-mono text-melora-textMuted mt-1">
+                    {new Date(album.releaseDate).getFullYear()} • {album.songCount} tracks
+                  </p>
+                </Link>
               ))}
-              {!albums.length && <p className="col-span-full text-melora-textMuted">No albums matched your search.</p>}
+
+              {!albums.length && (
+                <p className="col-span-full text-xs text-melora-textMuted py-4">
+                  No albums matched your query.
+                </p>
+              )}
             </div>
           </section>
 
-          <section>
-            <h2 className="text-2xl font-bold mb-5">Singles & Tracks</h2>
-            <div className="rounded-2xl border border-white/5 bg-melora-surfaceLayer/20 divide-y divide-white/5">
-              {allSinglesSection.map((song) => {
+          {/* Singles & Tracks Table */}
+          <section className="space-y-4 pt-4">
+            <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight">
+              Tracks & Singles
+            </h2>
+
+            <div className="glass-panel rounded-card-lg p-2.5 space-y-1">
+              {allSinglesSection.map((song, idx) => {
                 const selected = requestedPlaylist || "";
-                const inSelected = Boolean(playlists.find((p) => p.id === selected)?.songIds.includes(song.id));
+                const inSelected = Boolean(
+                  playlists.find((p) => p.id === selected)?.songIds.includes(song.id)
+                );
+
                 return (
-                  <div key={song.id} className="p-4 flex items-center gap-4 group">
-                    <button onClick={() => playSong(song)} className="w-12 h-12 rounded-lg bg-gradient-01 overflow-hidden flex items-center justify-center shrink-0">
-                      {song.coverUrl ? <img src={song.coverUrl} alt="" className="w-full h-full object-cover" /> : <Play className="w-4 h-4 fill-white" />}
-                    </button>
-                    <div className="flex-1 min-w-0">
-                      <button onClick={() => playSong(song)} className="font-semibold truncate block text-left w-full">
-                        {song.title}
-                      </button>
-                      <div className="text-sm text-melora-textMuted truncate">
-                        <Link href={`/artists/${song.artistId}`} className="hover:text-white">
-                          {song.artistName}
-                        </Link>
-                        {song.albumId && (
-                          <>
-                            {" • "}
-                            <Link href={`/albums/${song.albumId}`} className="hover:text-white">
-                              {song.albumTitle}
-                            </Link>
-                          </>
+                  <div
+                    key={song.id}
+                    className="flex items-center justify-between p-3 rounded-card hover:bg-white/6 transition-colors group select-none"
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                      <button
+                        onClick={() => playSong(song)}
+                        className="w-11 h-11 rounded-lg bg-melora-cardElevated border border-white/10 overflow-hidden flex items-center justify-center shrink-0 relative group/play"
+                      >
+                        {song.coverUrl ? (
+                          <img
+                            src={song.coverUrl}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Play className="w-4 h-4 fill-white opacity-70 group-hover/play:opacity-100" />
                         )}
+                      </button>
+
+                      <div className="min-w-0 flex-1">
+                        <button
+                          onClick={() => playSong(song)}
+                          className="font-semibold text-sm text-white truncate block text-left group-hover:text-melora-purple transition-colors"
+                        >
+                          {song.title}
+                        </button>
+                        <div className="text-xs text-melora-textSecondary truncate mt-0.5">
+                          <Link
+                            href={`/artists/${song.artistId}`}
+                            className="hover:text-white"
+                          >
+                            {song.artistName}
+                          </Link>
+                          {song.albumId && (
+                            <>
+                              {" • "}
+                              <Link
+                                href={`/albums/${song.albumId}`}
+                                className="hover:text-white"
+                              >
+                                {song.albumTitle}
+                              </Link>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div className="hidden lg:block text-sm text-melora-textMuted">
-                      {song.listeners !== null ? `${song.listeners.toLocaleString()} listeners` : ""}
+
+                    <div className="hidden lg:block text-xs font-mono text-melora-textMuted px-4">
+                      {song.listeners !== null
+                        ? `${song.listeners.toLocaleString()} listeners`
+                        : ""}
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <button
+                    <div className="flex items-center gap-2.5">
+                      <IconButton
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleDownload(song)}
-                        className="p-2 hover:bg-white/10 rounded-full transition-colors"
-                        title="Download (Silver/Gold Only)"
+                        tooltip="Download Offline (Silver/Gold)"
                       >
-                        <Download className="w-4 h-4 text-melora-textMuted hover:text-white" />
-                      </button>
+                        <Download className="w-4 h-4" />
+                      </IconButton>
 
                       {playlists.length > 0 && (
-                        <>
-                          <ListPlus className="w-4 h-4 text-melora-textMuted hidden sm:block" />
-                          <select
-                            defaultValue={requestedPlaylist || ""}
-                            onChange={(e) => {
-                              const id = e.target.value;
-                              if (id) addToPlaylist(id, song);
-                              e.currentTarget.value = requestedPlaylist || "";
-                            }}
-                            className="max-w-[170px] bg-melora-bgPrimary border border-white/10 rounded-lg px-2 py-2 text-xs"
-                          >
-                            <option value="">Add/remove playlist…</option>
-                            {playlists.map((playlist) => (
-                              <option key={playlist.id} value={playlist.id}>
-                                {playlist.songIds.includes(song.id) ? "✓ " : ""}
-                                {playlist.name}
-                              </option>
-                            ))}
-                          </select>
-                          {requestedPlaylist && (
-                            <button onClick={() => addToPlaylist(requestedPlaylist, song)} className="text-xs px-3 py-2 rounded-lg border border-white/10">
-                              {inSelected ? "Remove" : "Add"}
-                            </button>
-                          )}
-                        </>
+                        <select
+                          defaultValue={requestedPlaylist || ""}
+                          onChange={(e) => {
+                            const id = e.target.value;
+                            if (id) addToPlaylist(id, song);
+                            e.currentTarget.value = requestedPlaylist || "";
+                          }}
+                          className="max-w-[150px] bg-melora-cardSurface border border-white/10 rounded-full px-2.5 py-1 text-[11px] text-melora-textSecondary focus:outline-none focus:border-melora-purple cursor-pointer"
+                        >
+                          <option value="">+ Add to playlist…</option>
+                          {playlists.map((pl) => (
+                            <option key={pl.id} value={pl.id}>
+                              {pl.songIds.includes(song.id) ? "✓ " : ""}
+                              {pl.name}
+                            </option>
+                          ))}
+                        </select>
                       )}
                     </div>
                   </div>
                 );
               })}
-              {!allSinglesSection.length && <p className="p-8 text-melora-textMuted">No songs matched your search.</p>}
+
+              {!allSinglesSection.length && (
+                <p className="p-6 text-xs text-melora-textMuted text-center">
+                  No songs found in catalog.
+                </p>
+              )}
             </div>
           </section>
         </>

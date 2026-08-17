@@ -1,16 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
-
-import MusicPlayer from "../components/player/MusicPlayer";
-import TopBar from "../components/layout/TopBar";
-import AuthBootstrap from "../components/auth/AuthBootstrap";
-import PWAManager from "../components/pwa/PWAManager";
+import AppShell from "../components/layout/AppShell";
 
 // Configure Poppins per the Melora Typography guidelines
 const poppins = Poppins({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800"],
   variable: "--font-poppins",
   display: "swap",
 });
@@ -25,9 +21,9 @@ export const viewport: Viewport = {
 
 // Set up the emotional and premium metadata with Progressive Web App specs
 export const metadata: Metadata = {
-  title: "Melora | Feel Every Melody",
+  title: "Melora — Feel Every Melody",
   description:
-    "A premium, calm, and immersive next-generation music streaming platform.",
+    "A modern, emotional, immersive music platform focused on making users feel music rather than simply browse and play songs.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -68,17 +64,7 @@ export default function RootLayout({
           ease-out
         "
       >
-        {/* Background Parallax & Ambient Gradients */}
-        <div className="relative min-h-screen w-full flex flex-col">
-          <PWAManager />
-          <AuthBootstrap />
-          <TopBar />
-
-          {children}
-
-          {/* RENDER THE PLAYER HERE */}
-          <MusicPlayer />
-        </div>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

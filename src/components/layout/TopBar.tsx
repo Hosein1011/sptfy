@@ -2,28 +2,37 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
-  Search,
   ChevronDown,
   User,
   Mic2,
   Settings,
   LogOut,
   Shield,
-  Home,
+  Heart,
+  Library,
+  Crown,
+  Sparkles,
 } from "lucide-react";
+import MeloraLogo from "../brand/MeloraLogo";
+import SearchBar from "../ui/SearchBar";
 import Button from "../common/Button";
 import NotificationBell from "./NotificationBell";
 import PWAInstallButton from "../pwa/PWAInstallButton";
 import { useAuthStore } from "../../store/authStore";
+import { useAtmosphere } from "../brand/AtmosphereBackground";
 
 export default function TopBar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
+  const router = useRouter();
 
   const { isAuthenticated, user, logout } = useAuthStore();
+  const { activeMood } = useAtmosphere();
 
   const displayName =
-    user?.name || user?.username || user?.email?.split("@")[0] || "User";
+    user?.name || user?.username || user?.email?.split("@")[0] || "Listener";
 
   const initial = displayName.charAt(0).toUpperCase();
 
@@ -32,131 +41,185 @@ export default function TopBar() {
       ? "Admin"
       : user?.role === "ARTIST"
         ? "Artist"
-        : "Listener";
+        : `${user?.tier || "Free"} Member`;
+
+  const handleSearchSubmit = (value: string) => {
+    setSearchValue(value);
+    if (value.trim()) {
+      router.push(`/search?q=${encodeURIComponent(value.trim())}`);
+    }
+  };
 
   const handleLogout = () => {
     logout();
     setIsDropdownOpen(false);
+    router.push("/login");
   };
 
   return (
-    <div className="w-full h-20 bg-melora-bgPrimary/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-6 md:px-10 sticky top-0 z-40 transition-all duration-base">
-      <div className="flex items-center gap-6 flex-1">
-        <Link href="/" className="hidden md:flex items-center gap-2 group">
-          <div className="w-9 h-9 rounded-full bg-gradient-01 shadow-soft flex items-center justify-center text-white transition-transform duration-base group-hover:scale-105">
-            <Home className="w-4 h-4" />
-          </div>
-          <span className="text-sm font-bold text-white group-hover:text-melora-textSecondary transition-colors duration-base">
-            Home
-          </span>
-        </Link>
+    <header className="w-full h-18 md:h-20 bg-[#0B0F16]/70 backdrop-blur-xl border-b border-white/6 flex items-center justify-between px-4 md:px-8 sticky top-0 z-40 transition-all duration-base">
+      {/* Left Area: Mobile Logo & Desktop Search */}
+      <div className="flex items-center gap-6 flex-1 max-w-2xl">
+        {/* Mobile Logo */}
+        <div className="md:hidden">
+          <MeloraLogo size="sm" showWordmark={false} href="/" />
+        </div>
 
-        <div className="relative w-full max-w-md hidden md:block">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-melora-textMuted" />
-          <input
-            type="text"
-            placeholder="Search for songs, artists, or albums..."
-            className="w-full bg-melora-surfaceLayer/50 border border-white/10 rounded-full py-2.5 pl-12 pr-4 text-sm text-white placeholder:text-melora-textMuted focus:outline-none focus:border-melora-purple focus:ring-1 focus:ring-melora-purple transition-all duration-base"
+        {/* Global Search Bar (Desktop) */}
+        <div className="hidden md:block w-full max-w-md">
+          <SearchBar
+            value={searchValue}
+            onChange={handleSearchSubmit}
+            placeholder="Search songs, artists, albums, or moods... (Press /)"
+            size="sm"
           />
         </div>
+
+        {/* Active Mood Pill indicator on desktop */}
+        {activeMood !== "All" && (
+          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-melora-purple/15 border border-melora-purple/30 text-xs font-semibold text-melora-lavender">
+            <Sparkles className="w-3.5 h-3.5 text-melora-pink animate-pulse" />
+            <span>Atmosphere: {activeMood}</span>
+          </div>
+        )}
       </div>
 
-      <div className="flex items-center gap-3 md:gap-4">
-        {/* PWA Install Button integrated in TopBar */}
+      {/* Right Controls Area */}
+      <div className="flex items-center gap-2.5 md:gap-4 shrink-0">
+        {/* PWA Install Button */}
         <PWAInstallButton variant="topbar" />
 
         {!isAuthenticated ? (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <Link href="/register">
-              <span className="text-sm font-bold text-melora-textSecondary hover:text-white transition-colors duration-base cursor-pointer px-4 py-2">
+              <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
                 Sign Up
-              </span>
+              </Button>
             </Link>
             <Link href="/login">
-              <Button variant="primary" className="py-2 px-6 text-sm rounded-full">
+              <Button variant="primary" size="sm" className="rounded-full shadow-glow">
                 Log In
               </Button>
             </Link>
           </div>
         ) : (
-          <div className="flex items-center gap-3 md:gap-4">
+          <div className="flex items-center gap-2 md:gap-3">
             <NotificationBell />
 
+            {/* Profile Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center gap-2 p-1 pr-3 rounded-full bg-melora-surfaceLayer/50 border border-white/10 hover:bg-melora-surfaceLayer transition-colors duration-base"
+                className="flex items-center gap-2 p-1 pr-2.5 rounded-full bg-melora-cardSurface/70 border border-white/10 hover:border-melora-purple/40 hover:bg-melora-surfaceHover transition-all duration-micro"
               >
-                <div className="w-8 h-8 rounded-full bg-gradient-01 shadow-soft flex items-center justify-center text-white font-bold text-sm">
-                  {initial}
+                <div className="w-8 h-8 rounded-full bg-gradient-primary shadow-soft flex items-center justify-center text-white font-bold text-xs overflow-hidden shrink-0">
+                  {(user?.profileImage || user?.avatarUrl) ? (
+                    <img
+                      src={(user?.profileImage || user?.avatarUrl)!}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    initial
+                  )}
                 </div>
-                <ChevronDown className="w-4 h-4 text-melora-textSecondary" />
+                <span className="hidden sm:inline-block text-xs font-bold text-white max-w-[100px] truncate">
+                  {displayName}
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 text-melora-textSecondary" />
               </button>
 
               {isDropdownOpen && (
-                <div className="absolute right-0 mt-3 w-56 bg-melora-surfaceLayer/95 backdrop-blur-[24px] border border-white/10 rounded-panel shadow-glow overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-base">
-                  <div className="p-4 border-b border-white/5">
-                    <p className="text-white font-bold text-sm">{displayName}</p>
-                    <p className="text-xs text-melora-textMuted uppercase tracking-wider mt-1">
-                      {roleLabel}
-                    </p>
-                  </div>
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setIsDropdownOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-3 w-60 glass-modal rounded-card-lg border border-white/10 shadow-glow-purple overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-micro">
+                    {/* Header */}
+                    <div className="p-4 border-b border-white/6 bg-white/[0.02]">
+                      <p className="text-white font-bold text-sm truncate">
+                        {displayName}
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <Crown className="w-3 h-3 text-melora-orange" />
+                        <p className="text-[11px] text-melora-textMuted uppercase tracking-wider font-semibold">
+                          {roleLabel}
+                        </p>
+                      </div>
+                    </div>
 
-                  <div className="py-2">
-                    <Link
-                      href="/profile"
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2 text-sm text-melora-textSecondary hover:text-white hover:bg-white/5 transition-colors"
-                    >
-                      <User className="w-4 h-4" /> Profile
-                    </Link>
-
-                    {user?.role === "ARTIST" && (
+                    {/* Menu links */}
+                    <div className="py-2 px-1.5 space-y-0.5">
                       <Link
-                        href="/artist"
+                        href="/profile"
                         onClick={() => setIsDropdownOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2 text-sm text-melora-textSecondary hover:text-melora-pink hover:bg-melora-pink/5 transition-colors"
+                        className="flex items-center gap-3 px-3 py-2 rounded-btn text-xs font-medium text-melora-textSecondary hover:text-white hover:bg-white/8 transition-colors"
                       >
-                        <Mic2 className="w-4 h-4" /> Artist Studio
+                        <User className="w-4 h-4 text-melora-purple" />
+                        <span>Your Profile</span>
                       </Link>
-                    )}
 
-                    {user?.role === "ADMIN" && (
                       <Link
-                        href="/admin"
+                        href="/library"
                         onClick={() => setIsDropdownOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2 text-sm text-melora-textSecondary hover:text-melora-orange hover:bg-melora-orange/5 transition-colors"
+                        className="flex items-center gap-3 px-3 py-2 rounded-btn text-xs font-medium text-melora-textSecondary hover:text-white hover:bg-white/8 transition-colors"
                       >
-                        <Shield className="w-4 h-4" /> Admin Panel
+                        <Library className="w-4 h-4 text-melora-pink" />
+                        <span>Music Library</span>
                       </Link>
-                    )}
 
-                    <Link
-                      href="/settings"
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2 text-sm text-melora-textSecondary hover:text-white hover:bg-white/5 transition-colors"
-                    >
-                      <Settings className="w-4 h-4" /> Settings
-                    </Link>
+                      {user?.role === "ARTIST" && (
+                        <Link
+                          href="/artist"
+                          onClick={() => setIsDropdownOpen(false)}
+                          className="flex items-center gap-3 px-3 py-2 rounded-btn text-xs font-medium text-melora-pink hover:bg-melora-pink/10 transition-colors"
+                        >
+                          <Mic2 className="w-4 h-4" />
+                          <span>Artist Studio</span>
+                        </Link>
+                      )}
 
-                    {/* In-menu PWA Install Option */}
-                    <PWAInstallButton variant="menu" />
+                      {user?.role === "ADMIN" && (
+                        <Link
+                          href="/admin"
+                          onClick={() => setIsDropdownOpen(false)}
+                          className="flex items-center gap-3 px-3 py-2 rounded-btn text-xs font-medium text-melora-orange hover:bg-melora-orange/10 transition-colors"
+                        >
+                          <Shield className="w-4 h-4" />
+                          <span>Admin Console</span>
+                        </Link>
+                      )}
+
+                      <Link
+                        href="/settings"
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="flex items-center gap-3 px-3 py-2 rounded-btn text-xs font-medium text-melora-textSecondary hover:text-white hover:bg-white/8 transition-colors"
+                      >
+                        <Settings className="w-4 h-4 text-melora-textMuted" />
+                        <span>Settings & Audio</span>
+                      </Link>
+
+                      <PWAInstallButton variant="menu" />
+                    </div>
+
+                    {/* Footer */}
+                    <div className="p-1.5 border-t border-white/6">
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-xs font-medium text-melora-error hover:bg-melora-error/10 rounded-btn transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Log Out</span>
+                      </button>
+                    </div>
                   </div>
-
-                  <div className="p-2 border-t border-white/5">
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-2 py-2 text-sm text-melora-textMuted hover:text-white hover:bg-white/5 rounded-md transition-colors"
-                    >
-                      <LogOut className="w-4 h-4" /> Log Out
-                    </button>
-                  </div>
-                </div>
+                </>
               )}
             </div>
           </div>
         )}
       </div>
-    </div>
+    </header>
   );
 }

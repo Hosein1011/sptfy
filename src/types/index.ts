@@ -3,14 +3,19 @@ export type SubscriptionTier = "FREE" | "STANDARD" | "SILVER" | "GOLD";
 export type Gender = "FEMALE" | "MALE" | "OTHER" | "UNSPECIFIED";
 
 export interface UserPreferences {
-  notifications_enabled: boolean;
-  system_sound_enabled: boolean;
-  language: string;
-  high_quality: boolean;
-  spatial_audio: boolean;
-  offline_mode: boolean;
-  private_session: boolean;
-  data_saver: boolean;
+  notifications_enabled?: boolean;
+  system_sound_enabled?: boolean;
+  language?: string;
+  high_quality?: boolean;
+  spatial_audio?: boolean;
+  offline_mode?: boolean;
+  private_session?: boolean;
+  data_saver?: boolean;
+  highQuality?: boolean;
+  spatialAudio?: boolean;
+  offlineMode?: boolean;
+  privateSession?: boolean;
+  dataSaver?: boolean;
   updated_at?: string;
 }
 
@@ -25,6 +30,7 @@ export interface User {
   birth_date?: string | null;
   gender?: Gender;
   profileImage?: string | null;
+  avatarUrl?: string | null;
   bio?: string;
   followingIds?: string[];
   followerCount?: number;
@@ -95,6 +101,7 @@ export interface AuditObj {
 export interface Notification {
   id: string;
   userId: string;
+  title?: string;
   message: string;
   type?: string;
   link?: string;

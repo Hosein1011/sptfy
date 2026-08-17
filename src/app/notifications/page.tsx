@@ -2,9 +2,13 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Bell, BellRing, Check, CheckCircle2, Trash2 } from "lucide-react";
+import { Bell, BellRing, Check, CheckCircle2, Trash2, Sparkles } from "lucide-react";
 import { notificationsApi } from "../../lib/api";
 import { Notification } from "../../types";
+import Button from "../../components/common/Button";
+import IconButton from "../../components/ui/IconButton";
+import EmptyState from "../../components/ui/EmptyState";
+import { useToast } from "../../components/ui/ToastProvider";
 
 function relativeTime(value: string) {
   const ms = Date.now() - new Date(value).getTime();
@@ -22,6 +26,7 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { toast } = useToast();
 
   const load = async () => {
     setLoading(true);
@@ -36,72 +41,174 @@ export default function NotificationsPage() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
-  const filtered = useMemo(() => notifications.filter((n) => activeTab === "all" || !n.isRead), [activeTab, notifications]);
+  const filtered = useMemo(
+    () => notifications.filter((n) => activeTab === "all" || !n.isRead),
+    [activeTab, notifications]
+  );
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const markAsRead = async (id: string) => {
     try {
       const updated = await notificationsApi.markRead(id);
-      setNotifications((items) => items.map((item) => item.id === id ? updated : item));
-    } catch (e) { setError(e instanceof Error ? e.message : "Could not mark notification as read."); }
+      setNotifications((items) =>
+        items.map((item) => (item.id === id ? updated : item))
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not mark notification as read.");
+    }
   };
 
   const markAllAsRead = async () => {
     try {
       await notificationsApi.markAllRead();
       setNotifications((items) => items.map((item) => ({ ...item, isRead: true })));
-    } catch (e) { setError(e instanceof Error ? e.message : "Could not mark notifications as read."); }
+      toast("All notifications marked as read", "success");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not mark notifications as read.");
+    }
   };
 
   const remove = async (id: string) => {
     try {
       await notificationsApi.remove(id);
       setNotifications((items) => items.filter((item) => item.id !== id));
-    } catch (e) { setError(e instanceof Error ? e.message : "Could not delete notification."); }
-  };
-
-  const clearAll = async () => {
-    try {
-      await notificationsApi.clearAll();
-      setNotifications([]);
-    } catch (e) { setError(e instanceof Error ? e.message : "Could not clear notifications."); }
+      toast("Notification removed", "info");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not delete notification.");
+    }
   };
 
   return (
-    <main className="flex-1 w-full p-6 md:p-10 pb-32 max-w-4xl mx-auto">
-      <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-5">
-        <div><h1 className="text-3xl md:text-4xl font-bold flex items-center gap-3"><Bell className="w-8 h-8 text-melora-pink" />Notifications</h1><p className="text-melora-textSecondary mt-2">Account, release, artist, finance and support updates.</p></div>
-        <div className="flex items-center gap-2">
-          <div className="bg-melora-surfaceLayer/50 p-1 rounded-lg border border-white/5 flex"><button onClick={() => setActiveTab("all")} className={`px-4 py-2 text-sm rounded-md ${activeTab === "all" ? "bg-white/10 text-white" : "text-melora-textMuted"}`}>All</button><button onClick={() => setActiveTab("unread")} className={`px-4 py-2 text-sm rounded-md ${activeTab === "unread" ? "bg-white/10 text-white" : "text-melora-textMuted"}`}>Unread ({unreadCount})</button></div>
-          <button onClick={markAllAsRead} disabled={!unreadCount} className="p-2 text-melora-textSecondary hover:text-melora-purple disabled:opacity-30" title="Mark all as read"><CheckCircle2 className="w-5 h-5" /></button>
-          <button onClick={clearAll} disabled={!notifications.length} className="p-2 text-melora-textSecondary hover:text-melora-pink disabled:opacity-30" title="Clear all"><Trash2 className="w-5 h-5" /></button>
+    <main className="w-full px-4 md:px-8 lg:px-10 py-6 md:py-8 max-w-4xl mx-auto space-y-8">
+      {/* Header */}
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
+            <Bell className="w-8 h-8 text-melora-purple" />
+            <span>Activity & Notifications</span>
+          </h1>
+          <p className="text-xs md:text-sm text-melora-textSecondary mt-1">
+            New releases from followed artists, system alerts, and playlist updates.
+          </p>
         </div>
+
+        {unreadCount > 0 && (
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<Check className="w-4 h-4" />}
+            onClick={markAllAsRead}
+            className="rounded-full"
+          >
+            Mark All Read
+          </Button>
+        )}
       </header>
 
-      {error && <p className="mb-5 text-sm text-red-300">{error}</p>}
-      <section className="bg-melora-surfaceLayer/30 border border-white/5 rounded-panel overflow-hidden">
-        {loading ? <div className="p-12 text-center text-melora-textMuted">Loading notifications...</div> : filtered.length ? (
-          <div className="divide-y divide-white/5">
-            {filtered.map((notification) => (
-              <div key={notification.id} className={`p-5 flex items-start gap-4 group ${!notification.isRead ? "bg-melora-purple/5" : "hover:bg-white/5"}`}>
-                <div className={`mt-2 w-2.5 h-2.5 rounded-full shrink-0 ${!notification.isRead ? "bg-melora-purple shadow-glow" : "bg-white/10"}`} />
-                <div className="flex-1 min-w-0">
-                  {notification.link ? <Link href={notification.link} onClick={() => !notification.isRead && markAsRead(notification.id)} className={`block ${!notification.isRead ? "font-semibold text-white" : "text-melora-textSecondary"}`}>{notification.message}</Link> : <p className={!notification.isRead ? "font-semibold" : "text-melora-textSecondary"}>{notification.message}</p>}
-                  <div className="flex items-center gap-3 mt-2"><span className="text-xs text-melora-textMuted">{relativeTime(notification.createdAt)}</span><span className="text-[10px] uppercase tracking-wider bg-white/5 rounded px-2 py-0.5 text-melora-textMuted">{notification.type || "SYSTEM"}</span></div>
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-white/6 pb-4">
+        <button
+          onClick={() => setActiveTab("all")}
+          className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+            activeTab === "all"
+              ? "bg-gradient-primary text-white shadow-glow"
+              : "text-melora-textSecondary hover:text-white bg-white/5"
+          }`}
+        >
+          All Activity ({notifications.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("unread")}
+          className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+            activeTab === "unread"
+              ? "bg-gradient-primary text-white shadow-glow"
+              : "text-melora-textSecondary hover:text-white bg-white/5"
+          }`}
+        >
+          Unread ({unreadCount})
+        </button>
+      </div>
+
+      {error && (
+        <div className="p-3.5 rounded-card bg-melora-error/15 border border-melora-error/30 text-xs text-red-200">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="py-20 text-center text-xs text-melora-textMuted flex items-center justify-center gap-2">
+          <Sparkles className="w-4 h-4 text-melora-purple animate-pulse" />
+          <span>Loading activity...</span>
+        </div>
+      ) : filtered.length ? (
+        <div className="glass-panel rounded-card-lg p-2.5 space-y-1.5 border border-white/6">
+          {filtered.map((item) => (
+            <div
+              key={item.id}
+              className={`flex items-start justify-between gap-4 p-4 rounded-card transition-colors ${
+                item.isRead
+                  ? "hover:bg-white/5 bg-transparent"
+                  : "bg-melora-purple/10 border border-melora-purple/20 shadow-soft-sm"
+              }`}
+            >
+              <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                <div
+                  className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
+                    item.isRead
+                      ? "bg-white/8 text-melora-textMuted"
+                      : "bg-gradient-primary text-white shadow-glow"
+                  }`}
+                >
+                  <BellRing className="w-4 h-4" />
                 </div>
-                <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                  {!notification.isRead && <button onClick={() => markAsRead(notification.id)} className="p-2 hover:text-melora-purple" title="Mark as read"><Check className="w-4 h-4" /></button>}
-                  <button onClick={() => remove(notification.id)} className="p-2 hover:text-melora-pink" title="Delete notification"><Trash2 className="w-4 h-4" /></button>
+
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-sm text-white">
+                    {item.title || item.type || "Notification"}
+                  </p>
+                  <p className="text-xs text-melora-textSecondary mt-0.5 leading-relaxed">
+                    {item.message}
+                  </p>
+                  <p className="text-[11px] font-mono text-melora-textMuted mt-1.5">
+                    {relativeTime(item.createdAt)}
+                  </p>
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="p-14 text-center"><BellRing className="w-12 h-12 mx-auto text-melora-textMuted mb-4" /><h3 className="text-xl font-bold">You're all caught up</h3><p className="text-melora-textSecondary mt-2">New notifications will appear here automatically.</p><Link href="/albums" className="inline-block mt-6 px-5 py-3 rounded-xl border border-white/10">Discover Music</Link></div>
-        )}
-      </section>
+
+              <div className="flex items-center gap-1 shrink-0">
+                {!item.isRead && (
+                  <IconButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => markAsRead(item.id)}
+                    tooltip="Mark as read"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-melora-purple" />
+                  </IconButton>
+                )}
+                <IconButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => remove(item.id)}
+                  tooltip="Delete"
+                  className="hover:text-melora-error"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </IconButton>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          title="All caught up"
+          description="You have no notifications in this view. Enjoy the music!"
+        />
+      )}
     </main>
   );
 }

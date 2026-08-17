@@ -3,40 +3,28 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Settings2, User, Volume2, Monitor,
-  Download, Shield, ChevronRight, LogOut, AlertTriangle
+  Settings2,
+  User,
+  Volume2,
+  Monitor,
+  Download,
+  Shield,
+  ChevronRight,
+  LogOut,
+  AlertTriangle,
+  Radio,
+  Sparkles,
 } from "lucide-react";
 import Button from "../../../components/common/Button";
+import Toggle from "../../../components/ui/Toggle";
 import { useAuthStore } from "../../../store/authStore";
 import { tokenStorage, userApi, UserPreferences } from "../../../lib/api";
-
-// Custom Melora Toggle Switch
-const SettingToggle = ({ label, description, isOn, onToggle }: { label: string, description?: string, isOn: boolean, onToggle: () => void }) => (
-  <div className="flex items-center justify-between py-3">
-    <div className="pr-4">
-      <p className="text-white font-medium">{label}</p>
-      {description && <p className="text-sm text-melora-textSecondary mt-0.5">{description}</p>}
-    </div>
-    <button
-      onClick={onToggle}
-      className={`
-        w-12 h-6 rounded-full relative flex-shrink-0 transition-all duration-base
-        ${isOn ? "bg-melora-purple shadow-glow" : "bg-white/10 border border-white/5"}
-      `}
-    >
-      <div
-        className={`
-          absolute top-1 w-4 h-4 rounded-full bg-white transition-transform duration-base
-          ${isOn ? "translate-x-7" : "translate-x-1"}
-        `}
-      />
-    </button>
-  </div>
-);
+import { useToast } from "../../../components/ui/ToastProvider";
 
 export default function SettingsPage() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { toast } = useToast();
 
   const [preferences, setPreferences] = useState<UserPreferences>({
     highQuality: true,
@@ -48,7 +36,6 @@ export default function SettingsPage() {
   const [isLoadingPrefs, setIsLoadingPrefs] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // واکشی تنظیمات واقعی از بک‌اند هنگام لود صفحه
   useEffect(() => {
     if (!user) return;
 
@@ -60,7 +47,7 @@ export default function SettingsPage() {
       try {
         const data = await userApi.getPreferences();
         if (data && typeof data === "object") {
-          setPreferences(prev => ({ ...prev, ...data }));
+          setPreferences((prev) => ({ ...prev, ...data }));
         }
       } catch (error) {
         console.warn("Could not load backend preferences:", error);
@@ -72,16 +59,16 @@ export default function SettingsPage() {
     fetchPreferences();
   }, [user]);
 
-  // اعمال تغییرات به صورت Optimistic UI و ارسال به بک‌اند
   const handleToggle = async (key: keyof UserPreferences) => {
     const currentValue = Boolean(preferences[key]);
     const newValue = !currentValue;
 
-    setPreferences(prev => ({ ...prev, [key]: newValue }));
+    setPreferences((prev) => ({ ...prev, [key]: newValue }));
 
     if (tokenStorage.get()) {
       try {
         await userApi.updatePreferences({ [key]: newValue });
+        toast("Setting updated", "info");
       } catch (error) {
         console.warn("Failed to save setting to backend:", error);
       }
@@ -95,7 +82,7 @@ export default function SettingsPage() {
 
   const handleDeleteAccount = async () => {
     const confirmed = window.confirm(
-      "Are you absolutely sure you want to delete your account? This action cannot be undone and you will lose all your saved playlists and preferences."
+      "Are you absolutely sure you want to delete your account? This action cannot be undone."
     );
 
     if (!confirmed) return;
@@ -105,187 +92,191 @@ export default function SettingsPage() {
       await useAuthStore.getState().deleteAccount();
       router.push("/");
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Failed to delete account. Please try again.");
+      alert(error instanceof Error ? error.message : "Failed to delete account.");
       setIsDeleting(false);
     }
   };
 
   if (!user) {
     return (
-      <main className="flex-1 w-full p-6 md:p-10 flex items-center justify-center">
-        <p className="text-melora-textMuted">Loading profile...</p>
+      <main className="w-full p-20 text-center text-xs text-melora-textMuted">
+        Loading settings...
       </main>
     );
   }
 
   return (
-    <main className="flex-1 w-full p-6 md:p-10 pb-32">
-
+    <main className="w-full px-4 md:px-8 lg:px-10 py-6 md:py-8 max-w-5xl mx-auto space-y-8">
       {/* Header */}
-      <header className="mb-10">
-        <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
+      <header>
+        <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
           <Settings2 className="w-8 h-8 text-melora-purple" />
           Preferences
         </h1>
-        <p className="text-melora-textSecondary font-medium">
-          Customize your Melora experience.
+        <p className="text-xs md:text-sm text-melora-textSecondary mt-1">
+          Customize audio fidelity, offline cache, privacy, and atmospheric defaults.
         </p>
       </header>
 
-      <div className="max-w-4xl grid grid-cols-1 md:grid-cols-12 gap-8">
-
-        {/* Left Column */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+        {/* Left Side Profile Summary */}
         <div className="md:col-span-4 space-y-6">
-          <div className="bg-melora-surfaceLayer/30 border border-white/5 rounded-panel p-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 rounded-full bg-gradient-01 shadow-soft flex items-center justify-center text-white font-bold text-xl uppercase">
+          <div className="glass-panel rounded-card-lg p-6 border border-white/8 space-y-5">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-full bg-gradient-primary shadow-soft flex items-center justify-center text-white font-bold text-lg uppercase shrink-0">
                 {user.username ? user.username.charAt(0) : "U"}
               </div>
-              <div>
-                <h3 className="text-white font-bold truncate max-w-[150px]">{user.username}</h3>
-                <span className={`text-xs font-bold px-2 py-1 rounded-md uppercase tracking-wider ${user.tier === 'GOLD' ? 'bg-melora-orange/10 text-melora-orange' :
-                    user.tier === 'SILVER' ? 'bg-gray-300/10 text-gray-300' :
-                      'bg-white/10 text-white/70'
-                  }`}>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-white font-bold text-sm truncate">
+                  {user.username || user.name}
+                </h3>
+                {user.username && (
+                  <p className="text-xs text-melora-textMuted">@{user.username}</p>
+                )}
+                <span
+                  className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider mt-0.5 ${
+                    user.tier === "GOLD"
+                      ? "bg-amber-500/20 text-yellow-300 border border-yellow-400/30"
+                      : user.tier === "SILVER"
+                        ? "bg-slate-300/20 text-slate-200 border border-slate-300/30"
+                        : "bg-white/10 text-white/70"
+                  }`}
+                >
                   {user.tier} Tier
                 </span>
               </div>
             </div>
 
-            <Button variant="secondary" className="w-full justify-between group">
-              Manage Account
-              <ChevronRight className="w-4 h-4 group-hover:text-melora-purple transition-colors" />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => router.push("/profile")}
+              className="w-full justify-between rounded-btn"
+            >
+              <span>Manage Profile</span>
+              <ChevronRight className="w-4 h-4 text-melora-textMuted" />
             </Button>
           </div>
 
-          <nav className="bg-melora-surfaceLayer/30 border border-white/5 rounded-panel overflow-hidden hidden md:block">
-            {[
-              { icon: User, label: "Account" },
-              { icon: Volume2, label: "Audio Quality" },
-              { icon: Monitor, label: "Appearance" },
-              { icon: Download, label: "Downloads" },
-              { icon: Shield, label: "Privacy & Social" },
-            ].map((item, idx) => (
-              <button key={idx} className="w-full flex items-center gap-4 px-6 py-4 text-melora-textSecondary hover:text-white hover:bg-white/5 transition-colors duration-base border-b border-white/5 last:border-0">
-                <item.icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
-              </button>
-            ))}
-          </nav>
-
           <Button
             variant="danger"
+            size="md"
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 border-none"
+            className="w-full rounded-btn"
+            leftIcon={<LogOut className="w-4 h-4" />}
           >
-            <LogOut className="w-5 h-5" />
             Sign Out
           </Button>
         </div>
 
-        {/* Right Column */}
+        {/* Right Settings Groups */}
         <div className="md:col-span-8 space-y-6">
-
           {isLoadingPrefs ? (
-            <div className="p-8 text-center text-melora-textMuted bg-melora-surfaceLayer/30 border border-white/5 rounded-panel">
+            <div className="p-8 text-center text-xs text-melora-textMuted glass-card rounded-card-lg">
               Loading preferences...
             </div>
           ) : (
             <>
-              {/* Audio Settings */}
-              <section className="bg-melora-surfaceLayer/30 border border-white/5 rounded-panel p-6 md:p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <Volume2 className="w-6 h-6 text-melora-pink" />
-                  <h2 className="text-xl font-bold text-white">Audio Quality</h2>
+              {/* Audio Quality Settings */}
+              <section className="glass-panel rounded-card-lg p-6 md:p-7 border border-white/8 space-y-4">
+                <div className="flex items-center gap-2.5 text-melora-pink">
+                  <Volume2 className="w-5 h-5" />
+                  <h2 className="text-lg font-bold text-white tracking-tight">
+                    Audio Quality & Streaming
+                  </h2>
                 </div>
 
-                <div className="space-y-2 divide-y divide-white/5">
-                  <SettingToggle
-                    label="High-Fidelity Streaming"
-                    description="Stream in lossless 24-bit/192kHz audio. Consumes more data."
+                <div className="divide-y divide-white/6">
+                  <Toggle
+                    label="High-Fidelity Lossless"
+                    description="Stream in 24-bit studio audio fidelity. Consumes more bandwidth."
                     isOn={Boolean(preferences.highQuality)}
-                    onToggle={() => handleToggle('highQuality')}
+                    onToggle={() => handleToggle("highQuality")}
                   />
-                  <SettingToggle
-                    label="Spatial Audio"
-                    description="Enable 3D surround sound for supported tracks."
+                  <Toggle
+                    label="Spatial Audio & Surround"
+                    description="Immersive 3D acoustic positioning for supported master tracks."
                     isOn={Boolean(preferences.spatialAudio)}
-                    onToggle={() => handleToggle('spatialAudio')}
+                    onToggle={() => handleToggle("spatialAudio")}
                   />
-                  <SettingToggle
+                  <Toggle
                     label="Data Saver"
-                    description="Force audio to 128kbps when on cellular networks."
+                    description="Compress stream on mobile data connections."
                     isOn={Boolean(preferences.dataSaver)}
-                    onToggle={() => handleToggle('dataSaver')}
+                    onToggle={() => handleToggle("dataSaver")}
                   />
                 </div>
               </section>
 
-              {/* Downloads Settings */}
-              <section className="bg-melora-surfaceLayer/30 border border-white/5 rounded-panel p-6 md:p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <Download className="w-6 h-6 text-melora-purple" />
-                  <h2 className="text-xl font-bold text-white">Downloads & Storage</h2>
+              {/* Downloads & Storage Settings */}
+              <section className="glass-panel rounded-card-lg p-6 md:p-7 border border-white/8 space-y-4">
+                <div className="flex items-center gap-2.5 text-melora-purple">
+                  <Download className="w-5 h-5" />
+                  <h2 className="text-lg font-bold text-white tracking-tight">
+                    Downloads & Offline Cache
+                  </h2>
                 </div>
 
-                <div className="space-y-2 divide-y divide-white/5">
-                  <SettingToggle
+                <div className="divide-y divide-white/6">
+                  <Toggle
                     label="Offline Mode"
-                    description="Only play music that has been downloaded to this device."
+                    description="Only play melodies stored in your local device cache."
                     isOn={Boolean(preferences.offlineMode)}
-                    onToggle={() => handleToggle('offlineMode')}
+                    onToggle={() => handleToggle("offlineMode")}
                   />
-                  <div className="py-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <p className="text-white font-medium">Storage Usage</p>
-                      <p className="text-melora-textSecondary text-sm">4.2 GB used</p>
+
+                  <div className="py-3">
+                    <div className="flex justify-between items-center text-xs mb-2">
+                      <span className="text-white font-medium">Cached Melodies</span>
+                      <span className="text-melora-textSecondary font-mono">3.4 GB / 64 GB</span>
                     </div>
                     <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden flex">
-                      <div className="h-full bg-melora-purple w-2/5"></div>
-                      <div className="h-full bg-melora-pink w-1/5"></div>
+                      <div className="h-full bg-gradient-primary w-1/4 rounded-full" />
                     </div>
                   </div>
                 </div>
               </section>
 
-              {/* Privacy Settings */}
-              <section className="bg-melora-surfaceLayer/30 border border-white/5 rounded-panel p-6 md:p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <Shield className="w-6 h-6 text-melora-orange" />
-                  <h2 className="text-xl font-bold text-white">Privacy & Social</h2>
+              {/* Privacy & Session Settings */}
+              <section className="glass-panel rounded-card-lg p-6 md:p-7 border border-white/8 space-y-4">
+                <div className="flex items-center gap-2.5 text-melora-orange">
+                  <Shield className="w-5 h-5" />
+                  <h2 className="text-lg font-bold text-white tracking-tight">
+                    Privacy & Listening Session
+                  </h2>
                 </div>
 
-                <div className="space-y-2 divide-y divide-white/5">
-                  <SettingToggle
+                <div className="divide-y divide-white/6">
+                  <Toggle
                     label="Private Session"
-                    description="Temporarily hide your listening activity from followers."
+                    description="Temporarily hide current playback activity from followers."
                     isOn={Boolean(preferences.privateSession)}
-                    onToggle={() => handleToggle('privateSession')}
+                    onToggle={() => handleToggle("privateSession")}
                   />
                 </div>
               </section>
+
+              {/* Danger Zone */}
+              <section className="glass-card rounded-card-lg p-6 border border-melora-error/30 bg-melora-error/5 space-y-4">
+                <div className="flex items-center gap-2.5 text-melora-error">
+                  <AlertTriangle className="w-5 h-5" />
+                  <h2 className="text-lg font-bold">Danger Zone</h2>
+                </div>
+                <p className="text-xs text-melora-textSecondary leading-relaxed">
+                  Permanently delete your Melora account and all saved playlists, listening history, and preferences.
+                </p>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={handleDeleteAccount}
+                  disabled={isDeleting}
+                  className="rounded-btn"
+                >
+                  {isDeleting ? "Deleting Account..." : "Delete Account"}
+                </Button>
+              </section>
             </>
           )}
-
-          {/* Danger Zone */}
-          <section className="bg-red-500/5 border border-red-500/20 rounded-panel p-6 md:p-8 mt-8">
-            <div className="flex items-center gap-3 mb-4">
-              <AlertTriangle className="w-6 h-6 text-red-400" />
-              <h2 className="text-xl font-bold text-red-400">Danger Zone</h2>
-            </div>
-            <p className="text-melora-textSecondary text-sm mb-6">
-              Permanently delete your Melora account and all of your data. This action cannot be undone.
-            </p>
-            <Button
-              variant="danger"
-              onClick={handleDeleteAccount}
-              disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700 text-white border-none"
-            >
-              {isDeleting ? "Deleting..." : "Delete Account"}
-            </Button>
-          </section>
-
         </div>
       </div>
     </main>
