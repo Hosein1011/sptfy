@@ -2,14 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  Settings2, User, Volume2, Monitor, 
+import {
+  Settings2, User, Volume2, Monitor,
   Download, Shield, ChevronRight, LogOut, AlertTriangle
 } from "lucide-react";
 import Button from "../../../components/common/Button";
 import { useAuthStore } from "../../../store/authStore";
-import { authApi, userApi, tokenStorage, UserPreferences } from "../../../lib/api";
-import { storage } from "../../../lib/storage";
+import { tokenStorage, userApi, UserPreferences } from "../../../lib/api";
 
 // Custom Melora Toggle Switch
 const SettingToggle = ({ label, description, isOn, onToggle }: { label: string, description?: string, isOn: boolean, onToggle: () => void }) => (
@@ -18,14 +17,14 @@ const SettingToggle = ({ label, description, isOn, onToggle }: { label: string, 
       <p className="text-white font-medium">{label}</p>
       {description && <p className="text-sm text-melora-textSecondary mt-0.5">{description}</p>}
     </div>
-    <button 
+    <button
       onClick={onToggle}
       className={`
         w-12 h-6 rounded-full relative flex-shrink-0 transition-all duration-base
         ${isOn ? "bg-melora-purple shadow-glow" : "bg-white/10 border border-white/5"}
       `}
     >
-      <div 
+      <div
         className={`
           absolute top-1 w-4 h-4 rounded-full bg-white transition-transform duration-base
           ${isOn ? "translate-x-7" : "translate-x-1"}
@@ -37,7 +36,7 @@ const SettingToggle = ({ label, description, isOn, onToggle }: { label: string, 
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { user, logout, deleteAccount } = useAuthStore();
+  const { user } = useAuthStore();
 
   const [preferences, setPreferences] = useState<UserPreferences>({
     highQuality: true,
@@ -52,7 +51,7 @@ export default function SettingsPage() {
   // واکشی تنظیمات واقعی از بک‌اند هنگام لود صفحه
   useEffect(() => {
     if (!user) return;
-    
+
     const fetchPreferences = async () => {
       if (!tokenStorage.get()) {
         setIsLoadingPrefs(false);
@@ -77,7 +76,7 @@ export default function SettingsPage() {
   const handleToggle = async (key: keyof UserPreferences) => {
     const currentValue = Boolean(preferences[key]);
     const newValue = !currentValue;
-    
+
     setPreferences(prev => ({ ...prev, [key]: newValue }));
 
     if (tokenStorage.get()) {
@@ -89,8 +88,8 @@ export default function SettingsPage() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await useAuthStore.getState().logout();
     router.push("/login");
   };
 
@@ -98,30 +97,12 @@ export default function SettingsPage() {
     const confirmed = window.confirm(
       "Are you absolutely sure you want to delete your account? This action cannot be undone and you will lose all your saved playlists and preferences."
     );
-    
+
     if (!confirmed) return;
 
     setIsDeleting(true);
     try {
-      if (typeof deleteAccount === "function") {
-        await deleteAccount();
-      } else if (typeof useAuthStore.getState().deleteAccount === "function") {
-        await useAuthStore.getState().deleteAccount();
-      } else {
-        if (tokenStorage.get()) {
-          try {
-            await authApi.deleteAccount();
-          } catch (err) {
-            console.warn("Backend deletion:", err);
-          }
-        }
-        if (user?.id) {
-          storage.deleteUser(user.id);
-        }
-        tokenStorage.clear();
-        storage.logout();
-        useAuthStore.setState({ user: null, isAuthenticated: false });
-      }
+      await useAuthStore.getState().deleteAccount();
       router.push("/");
     } catch (error) {
       alert(error instanceof Error ? error.message : "Failed to delete account. Please try again.");
@@ -139,7 +120,7 @@ export default function SettingsPage() {
 
   return (
     <main className="flex-1 w-full p-6 md:p-10 pb-32">
-      
+
       {/* Header */}
       <header className="mb-10">
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 flex items-center gap-3">
@@ -152,7 +133,7 @@ export default function SettingsPage() {
       </header>
 
       <div className="max-w-4xl grid grid-cols-1 md:grid-cols-12 gap-8">
-        
+
         {/* Left Column */}
         <div className="md:col-span-4 space-y-6">
           <div className="bg-melora-surfaceLayer/30 border border-white/5 rounded-panel p-6">
@@ -162,16 +143,15 @@ export default function SettingsPage() {
               </div>
               <div>
                 <h3 className="text-white font-bold truncate max-w-[150px]">{user.username}</h3>
-                <span className={`text-xs font-bold px-2 py-1 rounded-md uppercase tracking-wider ${
-                  user.tier === 'GOLD' ? 'bg-melora-orange/10 text-melora-orange' : 
-                  user.tier === 'SILVER' ? 'bg-gray-300/10 text-gray-300' : 
-                  'bg-white/10 text-white/70'
-                }`}>
+                <span className={`text-xs font-bold px-2 py-1 rounded-md uppercase tracking-wider ${user.tier === 'GOLD' ? 'bg-melora-orange/10 text-melora-orange' :
+                    user.tier === 'SILVER' ? 'bg-gray-300/10 text-gray-300' :
+                      'bg-white/10 text-white/70'
+                  }`}>
                   {user.tier} Tier
                 </span>
               </div>
             </div>
-            
+
             <Button variant="secondary" className="w-full justify-between group">
               Manage Account
               <ChevronRight className="w-4 h-4 group-hover:text-melora-purple transition-colors" />
@@ -192,9 +172,9 @@ export default function SettingsPage() {
               </button>
             ))}
           </nav>
-          
-          <Button 
-            variant="danger" 
+
+          <Button
+            variant="danger"
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 border-none"
           >
@@ -205,7 +185,7 @@ export default function SettingsPage() {
 
         {/* Right Column */}
         <div className="md:col-span-8 space-y-6">
-          
+
           {isLoadingPrefs ? (
             <div className="p-8 text-center text-melora-textMuted bg-melora-surfaceLayer/30 border border-white/5 rounded-panel">
               Loading preferences...
@@ -218,22 +198,22 @@ export default function SettingsPage() {
                   <Volume2 className="w-6 h-6 text-melora-pink" />
                   <h2 className="text-xl font-bold text-white">Audio Quality</h2>
                 </div>
-                
+
                 <div className="space-y-2 divide-y divide-white/5">
-                  <SettingToggle 
-                    label="High-Fidelity Streaming" 
+                  <SettingToggle
+                    label="High-Fidelity Streaming"
                     description="Stream in lossless 24-bit/192kHz audio. Consumes more data."
                     isOn={Boolean(preferences.highQuality)}
                     onToggle={() => handleToggle('highQuality')}
                   />
-                  <SettingToggle 
-                    label="Spatial Audio" 
+                  <SettingToggle
+                    label="Spatial Audio"
                     description="Enable 3D surround sound for supported tracks."
                     isOn={Boolean(preferences.spatialAudio)}
                     onToggle={() => handleToggle('spatialAudio')}
                   />
-                  <SettingToggle 
-                    label="Data Saver" 
+                  <SettingToggle
+                    label="Data Saver"
                     description="Force audio to 128kbps when on cellular networks."
                     isOn={Boolean(preferences.dataSaver)}
                     onToggle={() => handleToggle('dataSaver')}
@@ -247,10 +227,10 @@ export default function SettingsPage() {
                   <Download className="w-6 h-6 text-melora-purple" />
                   <h2 className="text-xl font-bold text-white">Downloads & Storage</h2>
                 </div>
-                
+
                 <div className="space-y-2 divide-y divide-white/5">
-                  <SettingToggle 
-                    label="Offline Mode" 
+                  <SettingToggle
+                    label="Offline Mode"
                     description="Only play music that has been downloaded to this device."
                     isOn={Boolean(preferences.offlineMode)}
                     onToggle={() => handleToggle('offlineMode')}
@@ -274,10 +254,10 @@ export default function SettingsPage() {
                   <Shield className="w-6 h-6 text-melora-orange" />
                   <h2 className="text-xl font-bold text-white">Privacy & Social</h2>
                 </div>
-                
+
                 <div className="space-y-2 divide-y divide-white/5">
-                  <SettingToggle 
-                    label="Private Session" 
+                  <SettingToggle
+                    label="Private Session"
                     description="Temporarily hide your listening activity from followers."
                     isOn={Boolean(preferences.privateSession)}
                     onToggle={() => handleToggle('privateSession')}
@@ -296,8 +276,8 @@ export default function SettingsPage() {
             <p className="text-melora-textSecondary text-sm mb-6">
               Permanently delete your Melora account and all of your data. This action cannot be undone.
             </p>
-            <Button 
-              variant="danger" 
+            <Button
+              variant="danger"
               onClick={handleDeleteAccount}
               disabled={isDeleting}
               className="bg-red-600 hover:bg-red-700 text-white border-none"

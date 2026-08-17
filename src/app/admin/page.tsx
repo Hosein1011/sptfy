@@ -16,9 +16,9 @@ export default function AdminDashboardPage() {
 
   // --- TICKET SYSTEM STATE (Added by Person 2) ---
   const [tickets, setTickets] = useState([
-    { id: 101, user: "AlexD", subject: "مشکل در پرداخت اشتراک Gold", status: "Open", date: "امروز" },
-    { id: 102, user: "SarahM", subject: "تاخیر در تایید حساب هنرمند", status: "Open", date: "دیروز" },
-    { id: 103, user: "JohnDoe", subject: "خطا در ایجاد پلی‌لیست", status: "Resolved", date: "۱۲ مهر" },
+    { id: 101, user: "AlexD", subject: "Issue with Gold subscription payment", status: "Open", date: "Today" },
+    { id: 102, user: "SarahM", subject: "Delay in artist account verification", status: "Open", date: "Yesterday" },
+    { id: 103, user: "JohnDoe", subject: "Error creating playlist", status: "Resolved", date: "Oct 12" },
   ]);
 
   // --- STUBS FOR PERSON 2 ---
@@ -211,13 +211,13 @@ export default function AdminDashboardPage() {
                 </div>
                 <div>
                   <h4 className="text-white font-semibold">{ticket.subject}</h4>
-                  <p className="text-xs text-melora-textSecondary">ثبت شده توسط {ticket.user} • {ticket.date}</p>
+                  <p className="text-xs text-melora-textSecondary">Submitted by {ticket.user} • {ticket.date}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-4">
                 <span className={`text-xs px-3 py-1 rounded-full font-medium ${ticket.status === 'Resolved' ? 'bg-green-500/10 text-green-400' : 'bg-melora-orange/10 text-melora-orange'}`}>
-                  {ticket.status === 'Resolved' ? 'حل شده' : 'باز'}
+                  {ticket.status === 'Resolved' ? 'Resolved' : 'Open'}
                 </span>
                 {ticket.status === 'Open' && (
                   <button
@@ -225,7 +225,7 @@ export default function AdminDashboardPage() {
                     className="text-sm text-melora-textSecondary hover:text-green-400 transition-colors duration-base flex items-center gap-1"
                   >
                     <CheckCircle2 className="w-4 h-4" />
-                    بستن تیکت
+                    Close Ticket
                   </button>
                 )}
               </div>
@@ -233,7 +233,7 @@ export default function AdminDashboardPage() {
           ))}
 
           {tickets.length === 0 && (
-            <p className="text-center text-melora-textSecondary py-8">تیکت پشتیبانی باز وجود ندارد.</p>
+            <p className="text-center text-melora-textSecondary py-8">No open support tickets.</p>
           )}
         </div>
       </section>

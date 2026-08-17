@@ -42,23 +42,23 @@ export default function RegisterPage() {
     setError("");
 
     if (!name || !email || !password) {
-      setError("لطفاً تمام فیلدهای اصلی را پر کنید.");
+      setError("Please fill in all required fields.");
       return;
     }
     if (passwordConfirm && passwordConfirm !== password) {
-      setError("رمز عبور و تکرار آن یکسان نیستند.");
+      setError("Passwords do not match.");
       return;
     }
     if (!accepted) {
-      setError("لطفاً سیاست حفظ حریم خصوصی را بپذیرید.");
+      setError("Please accept the Privacy Policy.");
       return;
     }
     if (accountType === "listener" && (!passwordConfirm || !birthDate)) {
-      setError("تکرار رمز عبور و تاریخ تولد برای ثبت‌نام کاربر عادی الزامی است.");
+      setError("Password confirmation and birth date are required for listener registration.");
       return;
     }
     if (accountType === "artist" && !sampleWorkUrl && !sampleWorkFile) {
-      setError("برای حساب هنرمند حداقل یک نمونه‌کار وارد یا بارگذاری کنید.");
+      setError("Please provide at least one sample work URL or upload a file for artist registration.");
       return;
     }
 
@@ -91,7 +91,7 @@ export default function RegisterPage() {
       // Keep the original phase-one mock path usable when Django is offline.
       const users = JSON.parse(localStorage.getItem("sptfy_users") || "[]");
       if (users.find((u: UserType) => u.email === email)) {
-        setError("این ایمیل قبلاً ثبت شده است.");
+        setError("This email is already registered.");
         setIsSubmitting(false);
         return;
       }
@@ -213,8 +213,8 @@ export default function RegisterPage() {
           <div className="md:col-span-2 flex items-center gap-3 pt-1">
             <input type="checkbox" id="privacy" className="accent-melora-purple w-4 h-4 cursor-pointer" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
             <label htmlFor="privacy" className="text-sm text-melora-textSecondary cursor-pointer">
-              پذیرش{" "}
-              <button type="button" onClick={() => setIsPrivacyOpen(true)} className="text-melora-pink underline hover:text-white">سیاست حفظ حریم خصوصی</button>
+              I agree to the{" "}
+              <button type="button" onClick={() => setIsPrivacyOpen(true)} className="text-melora-pink underline hover:text-white">Privacy Policy</button>
             </label>
           </div>
 

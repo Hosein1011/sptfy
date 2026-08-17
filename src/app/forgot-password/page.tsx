@@ -19,13 +19,13 @@ export default function ForgotPasswordPage() {
         const normalizedEmail = email.trim().toLowerCase();
 
         if (!normalizedEmail) {
-            setError("لطفاً ایمیل خود را وارد کنید.");
+            setError("Please enter your email.");
             return;
         }
 
         try {
             const result = await authApi.requestPasswordReset(normalizedEmail);
-            setMessage(result.message || "لینک بازیابی رمز عبور ارسال شد.");
+            setMessage(result.message || "Password reset link has been sent.");
             setEmail("");
         } catch {
             const users = JSON.parse(localStorage.getItem("sptfy_users") || "[]");
@@ -33,10 +33,10 @@ export default function ForgotPasswordPage() {
                 (u: any) => u?.email?.trim?.().toLowerCase() === normalizedEmail
             );
             if (!userExists) {
-                setError("کاربری با این ایمیل یافت نشد.");
+                setError("No user found with this email.");
                 return;
             }
-            setMessage("لینک بازیابی رمز عبور به ایمیل شما ارسال شد.");
+            setMessage("Password reset link has been sent to your email.");
             setEmail("");
         }
     };
@@ -51,7 +51,7 @@ export default function ForgotPasswordPage() {
                         Reset Password
                     </h1>
                     <p className="text-melora-textSecondary">
-                        ایمیل خود را وارد کنید تا لینک بازیابی برای شما ارسال شود.
+                        Enter your email to receive a password reset link.
                     </p>
                 </div>
 
@@ -103,7 +103,7 @@ export default function ForgotPasswordPage() {
                         className="inline-flex items-center text-sm text-melora-textSecondary hover:text-white transition-colors duration-base"
                     >
                         <ArrowLeft className="w-4 h-4 mr-2" />
-                        بازگشت به صفحه ورود
+                        Back to login
                     </Link>
                 </div>
             </div>

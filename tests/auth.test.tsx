@@ -48,13 +48,13 @@ describe("Authentication Flow Tests", () => {
     const loginButtonName = /log in/i;
 
     describe("Register Component", () => {
-        it("فرم ثبت‌نام را درست رندر می‌کند", () => {
+        it("renders registration form correctly", () => {
             render(<RegisterPage />);
             expect(screen.getByPlaceholderText("John Doe")).toBeInTheDocument();
             expect(screen.getByRole("checkbox")).toBeInTheDocument();
         });
 
-        it("در صورت عدم تایید حریم خصوصی، خطا می‌دهد", async () => {
+        it("shows error when privacy policy is not accepted", async () => {
             render(<RegisterPage />);
             await userEvent.type(screen.getByPlaceholderText("John Doe"), "User");
             await userEvent.type(screen.getByPlaceholderText("you@example.com"), "test@example.com");
@@ -62,11 +62,11 @@ describe("Authentication Flow Tests", () => {
 
             fireEvent.click(screen.getByRole("button", { name: registerButtonName }));
 
-            expect(screen.getByText(/لطفاً سیاست حفظ حریم خصوصی را بپذیرید/i)).toBeInTheDocument();
+            expect(screen.getByText(/please accept the privacy policy/i)).toBeInTheDocument();
             expect(mockPush).not.toHaveBeenCalled();
         });
 
-        it("کاربر جدید پس از تایید قوانین ذخیره می‌شود", async () => {
+        it("saves new user after accepting rules", async () => {
             render(<RegisterPage />);
 
             await userEvent.type(screen.getByPlaceholderText("John Doe"), "New User");
@@ -84,14 +84,14 @@ describe("Authentication Flow Tests", () => {
             });
 
             const users = JSON.parse(localStorage.getItem("sptfy_users") || "[]");
-            // بررسی وجود کاربر بدون وابستگی به طول لیست
+            // Check user existence without relying on list length
             const userExists = users.some((u: any) => u.email === "new@example.com");
             expect(userExists).toBe(true);
         });
     });
 
     describe("Login Component", () => {
-        it("با اطلاعات صحیح لاگین می‌کند", async () => {
+        it("logs in with correct credentials", async () => {
             const existing = [{ id: "u1", name: "AAA", email: "test@example.com", password: "1234", role: "USER" }];
             localStorage.setItem("sptfy_users", JSON.stringify(existing));
 

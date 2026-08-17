@@ -23,9 +23,9 @@ describe('ArtistDashboardPage Test Suite', () => {
     it('renders correctly and allows uploading a new song', async () => {
         const mockNewSong = {
             id: 's-123',
-            title: 'آهنگ تستی',
+            title: 'Test Song',
             artistName: 'Luna Echo',
-            albumTitle: 'آلبوم تستی',
+            albumTitle: 'Test Album',
             audioUrl: '/audio/test.mp3',
             duration: 180,
             listeners: 0,
@@ -38,8 +38,8 @@ describe('ArtistDashboardPage Test Suite', () => {
         const albumInput = screen.getByPlaceholderText(/e.g. City Lights EP/i);
         const submitButton = screen.getByRole('button', { name: /upload track/i });
 
-        fireEvent.change(titleInput, { target: { value: 'آهنگ تستی' } });
-        fireEvent.change(albumInput, { target: { value: 'آلبوم تستی' } });
+        fireEvent.change(titleInput, { target: { value: 'Test Song' } });
+        fireEvent.change(albumInput, { target: { value: 'Test Album' } });
 
         // Create dummy file for audio input
         const file = new File(['dummy audio'], 'test.mp3', { type: 'audio/mp3' });
@@ -54,8 +54,8 @@ describe('ArtistDashboardPage Test Suite', () => {
         await waitFor(() => {
             expect(artistApi.uploadSong).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    title: 'آهنگ تستی',
-                    albumName: 'آلبوم تستی',
+                    title: 'Test Song',
+                    albumName: 'Test Album',
                 })
             );
         });
@@ -66,9 +66,9 @@ describe('ArtistDashboardPage Test Suite', () => {
         const mockSongs = [
             {
                 id: 's-old',
-                title: 'آهنگ قدیمی',
+                title: 'Old Song',
                 artistName: 'Luna Echo',
-                albumTitle: 'آلبوم قدیمی',
+                albumTitle: 'Old Album',
                 audioUrl: '/audio/old.mp3',
                 duration: 200,
                 listeners: 50,
@@ -83,7 +83,7 @@ describe('ArtistDashboardPage Test Suite', () => {
         render(<ArtistDashboardPage />);
 
         await waitFor(() => {
-            expect(screen.getByText('آهنگ قدیمی')).toBeInTheDocument();
+            expect(screen.getByText('Old Song')).toBeInTheDocument();
         });
 
         const deleteButton = screen.getByTitle(/delete track/i);

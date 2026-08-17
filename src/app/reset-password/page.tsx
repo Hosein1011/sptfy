@@ -23,11 +23,11 @@ function ResetPasswordForm() {
     setError("");
     setMessage("");
     if (!uid || !token) {
-      setError("لینک بازیابی معتبر نیست.");
+      setError("The recovery link is invalid.");
       return;
     }
     if (password !== passwordConfirm) {
-      setError("رمزهای عبور یکسان نیستند.");
+      setError("Passwords do not match.");
       return;
     }
     setLoading(true);
@@ -40,7 +40,7 @@ function ResetPasswordForm() {
       });
       setMessage(response.message);
     } catch (resetError) {
-      setError(resetError instanceof Error ? resetError.message : "بازیابی رمز ناموفق بود.");
+      setError(resetError instanceof Error ? resetError.message : "Password reset failed.");
     } finally {
       setLoading(false);
     }
@@ -49,11 +49,11 @@ function ResetPasswordForm() {
   return (
     <main className="min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-md bg-melora-surfaceLayer/60 border border-white/5 p-8 rounded-card shadow-soft">
-        <h1 className="text-2xl font-bold text-white mb-2">رمز عبور جدید</h1>
-        <p className="text-melora-textSecondary mb-8">رمز جدید حساب خود را وارد کنید.</p>
+        <h1 className="text-2xl font-bold text-white mb-2">New Password</h1>
+        <p className="text-melora-textSecondary mb-8">Enter a new password for your account.</p>
         <form onSubmit={submit} className="space-y-5">
           <label className="block">
-            <span className="text-sm text-melora-textSecondary">رمز عبور</span>
+            <span className="text-sm text-melora-textSecondary">Password</span>
             <div className="relative mt-2">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-melora-textMuted" />
               <input
@@ -67,7 +67,7 @@ function ResetPasswordForm() {
             </div>
           </label>
           <label className="block">
-            <span className="text-sm text-melora-textSecondary">تکرار رمز عبور</span>
+            <span className="text-sm text-melora-textSecondary">Confirm Password</span>
             <input
               type="password"
               minLength={8}
@@ -80,11 +80,11 @@ function ResetPasswordForm() {
           {error && <p className="text-sm text-red-400">{error}</p>}
           {message && (
             <p className="text-sm text-green-400">
-              {message} <Link href="/login" className="underline">ورود</Link>
+              {message} <Link href="/login" className="underline">Log in</Link>
             </p>
           )}
           <Button type="submit" variant="primary" className="w-full" disabled={loading}>
-            {loading ? "در حال ذخیره..." : "تغییر رمز عبور"}
+            {loading ? "Saving..." : "Change Password"}
           </Button>
         </form>
       </div>

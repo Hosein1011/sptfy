@@ -19,7 +19,7 @@ export default function LoginPage() {
     setError("");
 
     if (!email || !password) {
-      setError("لطفاً ایمیل و رمز عبور را وارد کنید.");
+      setError("Please enter your email and password.");
       return;
     }
 
@@ -38,7 +38,7 @@ export default function LoginPage() {
         router.push("/");
       }
     } else {
-      setError("ایمیل یا رمز عبور نامعتبر است.");
+      setError("Invalid email or password.");
     }
   };
 

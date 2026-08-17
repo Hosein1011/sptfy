@@ -17,39 +17,39 @@ export default function PrivacyPolicyModal({ isOpen, onClose }: PrivacyPolicyMod
                 <button
                     onClick={onClose}
                     className="absolute top-4 right-4 p-1 text-melora-textMuted hover:text-white transition-colors duration-base rounded-full hover:bg-white/5"
-                    aria-label="بستن"
+                    aria-label="Close"
                 >
                     <X className="w-5 h-5" />
                 </button>
 
                 <h2 className="text-2xl font-bold text-white mb-6 border-b border-white/10 pb-4">
-                    سیاست حفظ حریم خصوصی
+                    Privacy Policy
                 </h2>
 
                 <div className="text-melora-textSecondary space-y-4 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar text-sm leading-relaxed">
                     <p>
-                        به پلتفرم موسیقی ما خوش آمدید. حفظ حریم خصوصی شما برای ما از اهمیت بالایی برخوردار است و ما متعهد به محافظت از اطلاعات شخصی شما هستیم.
+                        Welcome to our music platform. Your privacy is of the utmost importance to us, and we are committed to protecting your personal information.
                     </p>
 
-                    <h3 className="text-white font-semibold mt-4 text-base">جمع‌آوری داده‌ها</h3>
+                    <h3 className="text-white font-semibold mt-4 text-base">Data Collection</h3>
                     <p>
-                        ما اطلاعاتی نظیر آدرس ایمیل، نام کاربری و تاریخچه پخش موسیقی شما را صرفاً جهت بهبود تجربه کاربری، ارائه پیشنهادات شخصی‌سازی شده و مدیریت نشست‌های فعال (Session Management) جمع‌آوری می‌کنیم.
+                        We collect information such as your email address, username, and music playback history solely to improve user experience, provide personalized recommendations, and manage active sessions.
                     </p>
 
-                    <h3 className="text-white font-semibold mt-4 text-base">امنیت اطلاعات</h3>
+                    <h3 className="text-white font-semibold mt-4 text-base">Information Security</h3>
                     <p>
-                        تمامی رمزهای عبور و داده‌های حساس شما به صورت ایمن ذخیره می‌شوند. ما از استانداردهای روز برای محافظت از داده‌های شما در برابر دسترسی‌های غیرمجاز استفاده می‌کنیم و این اطلاعات در اختیار هیچ شخص ثالثی قرار نخواهند گرفت.
+                        All your passwords and sensitive data are stored securely. We use industry standards to protect your data against unauthorized access, and this information will never be shared with third parties.
                     </p>
 
-                    <h3 className="text-white font-semibold mt-4 text-base">حقوق کاربر</h3>
+                    <h3 className="text-white font-semibold mt-4 text-base">User Rights</h3>
                     <p>
-                        شما به عنوان کاربر حق دارید در هر زمان به اطلاعات خود دسترسی داشته باشید، آن‌ها را ویرایش کنید و یا درخواست حذف کامل حساب کاربری و تمامی داده‌های مرتبط با آن را ثبت نمایید.
+                        As a user, you have the right to access your data at any time, edit it, or request complete deletion of your account and all associated data.
                     </p>
                 </div>
 
                 <div className="mt-8 flex justify-end gap-3 pt-4 border-t border-white/10">
                     <Button variant="primary" onClick={onClose} className="px-8">
-                        تایید و پذیرش
+                        Agree & Accept
                     </Button>
                 </div>
 

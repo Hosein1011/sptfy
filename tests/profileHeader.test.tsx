@@ -12,7 +12,7 @@ describe('ProfileHeader', () => {
       />,
     );
     expect(screen.getByText('Ali')).toBeInTheDocument();
-    expect(screen.getByText('کاربر عادی')).toBeInTheDocument();
+    expect(screen.getByText('Standard User')).toBeInTheDocument();
   });
 
   it('renders the free plan badge', () => {
@@ -24,7 +24,7 @@ describe('ProfileHeader', () => {
         subscriptionPlan="Free"
       />,
     );
-    expect(screen.getByText('رایگان')).toBeInTheDocument();
+    expect(screen.getByText('Free')).toBeInTheDocument();
   });
 
   it('renders the verified artist badge', () => {
@@ -36,7 +36,7 @@ describe('ProfileHeader', () => {
         subscriptionPlan="Premium"
       />,
     );
-    expect(screen.getByText('تأیید شده')).toBeInTheDocument();
-    expect(screen.getByText('پرمیوم')).toBeInTheDocument();
+    expect(screen.getByText('Verified')).toBeInTheDocument();
+    expect(screen.getByText('Premium')).toBeInTheDocument();
   });
 });
